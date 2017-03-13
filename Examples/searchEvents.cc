@@ -1,0 +1,298 @@
+#include <Event.h>
+#include <EventFile.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <AugerUnits.h>
+#include <PhysicalConstants.h>
+
+#include <StationData.h>
+#include <TimeStamp.h>
+#include <BitTools.h>
+#include <KGBits.h>
+
+#include <iostream>
+#include <stdlib.h>
+
+using namespace std;
+using namespace utl;
+
+
+bool IsSignalCandidate(Event& event, DetectorSetup& detector, double decibelAboveMean, double angleThreshold, int printOut, double timeOffset) {
+//  const ArrayData& arrayData = event.GetArrayData();
+
+  ArrayData& arrayData = event.GetArrayData();
+  #warning Needed untill CorrectedTriggerTime will be stored in selected*.root files
+//  arrayData.CalculateCorrectedTriggerTimes(); // 1st fit, seg fault for bad kg station signals
+  arrayData.CalculateCorrectedTriggerTimes2();
+
+  if (!arrayData.HasStationData(19)) { return false; } // no signal
+
+  const StationData& stationData = arrayData.GetStationData(19);
+
+  if (!stationData.HasTriggerTime()) { return false; }
+  if (!stationData.HasCorrectedTriggerTime()) { return false; } // only for stations within 300m from shower axis
+
+  angleThreshold = angleThreshold*degree;
+  timeOffset = timeOffset * 1000.0; // micro sec into nano
+
+  const unsigned int eventId = event.GetEventId();
+
+  UInt_t gpsSec = event.GetGPSSecond();
+  UInt_t gpsNanoSec = event.GetGPSNanoSecond();
+  utl::TimeStamp tStamp(gpsSec, gpsNanoSec);
+
+  const Shower& shower = arrayData.GetShower();
+  double energy = shower.GetEnergy();
+  double theta = shower.GetZenith();
+  double phi   = shower.GetAzimuth();
+  phi = 90. * degree - detector.GetArray().GetPhi() - phi;
+  if (phi < (0.0*degree)) phi = phi + 360.0*degree;
+  if (phi > (360.0*degree)) phi = phi - 360.0*degree;
+  double xCore = shower.GetCore().X();
+  double yCore = shower.GetCore().Y();
+  double angle = 0.0*degree;
+  // time window
+  double t0, t1;
+
+  bool hasSignal = false;
+
+if ( (xCore>(-440.*m)) && (xCore<(-50.*m)) && (yCore>(-550.*m)) && (yCore<(-30.*m)) && (theta<(40.*degree)) ) {
+//if ( (xCore>(-440.*m)) && (xCore<(-50.*m)) && (yCore>(-550.*m)) && (yCore<(-30.*m)) && (theta<(40.*degree)) && log10(energy)>16.5 ) {
+
+  for ( Event::ConstAntennaDataIterator antennaIter = event.AntennasBegin();
+        antennaIter != event.AntennasEnd(); ++antennaIter ) {
+
+    const AntennaData& antennaData = *antennaIter;
+    const int antennaId = antennaData.GetId();
+    const Antenna& antenna = detector.GetAntenna(antennaId);
+    double energyOld = 0.*eV;
+    double thetaOld = 0.*degree;
+    double phiOld = 0.*degree;
+    double xCoreOld = 0.*m;
+    double yCoreOld = 0.*m;
+
+    for ( AntennaData::ConstChannelDataIterator chanIter =
+            antennaData.ChannelsBegin();
+          chanIter != antennaData.ChannelsEnd(); ++chanIter ) { // channels
+
+      const ChannelData& channelData = *chanIter;
+      const unsigned int channelId = channelData.GetId();
+      const Channel& channel = antenna.GetChannel(channelId);
+
+
+      // Get the expected signal window a channel
+      vector<double> expectedSignal;
+      int drawExpSigError=1; // use fluctuation
+      double expSignalConeAngle=2.0*degree; // gives approx. 50 ns window
+      expectedSignal = event.GetExpectedSignalWindow(antennaId,
+                                                          channelId,
+                                                          expSignalConeAngle,
+                                                          drawExpSigError);
+
+      if (expectedSignal.size()==0) { // no intersection
+        continue; // go to the next channel
+      }
+
+      if (expectedSignal[0]<expectedSignal[1]) {
+        t0 = (expectedSignal[0] + timeOffset);  // minimum time before trigger
+        t1 = (expectedSignal[1] + timeOffset);  // maximum time before trigger
+      }
+      else {
+        t0 = (expectedSignal[1] + timeOffset);  // minimum time before trigger
+        t1 = (expectedSignal[0] + timeOffset);  // maximum time before trigger
+      }
+
+      const std::vector<Double_t>& signalTrace = channelData.GetDataTrace();
+      if (signalTrace.empty())
+        continue;
+
+      double meanVoltage =0.0;
+      for (size_t i = 0; i < signalTrace.size(); i++) {
+        meanVoltage = meanVoltage + signalTrace[i];
+      }
+      meanVoltage = meanVoltage / (utl::milli * volt) / double(signalTrace.size());
+
+      double fractionAbove = 0.0;
+      unsigned int numberAbove = 0;
+      unsigned int numberAboveMean = 0;
+      unsigned int numberAbove5 = 0;
+      unsigned int numberAbove6 = 0;
+      unsigned int numberAbove7 = 0;
+      unsigned int numberAbove8 = 0;
+      unsigned int numberAbove9 = 0;
+
+
+      // Exclude traces affected by RFI sources and unplugged channel
+      if ( (meanVoltage<19.5) && (meanVoltage>16.5) ) {
+        // threshold for printout
+        const double signalThreshold =
+          (meanVoltage - decibelAboveMean * 2.5) * utl::milli * volt;
+        const double signalThreshold5 =
+          (meanVoltage - 5 * 2.5) * utl::milli * volt;
+        const double signalThreshold6 =
+          (meanVoltage - 6 * 2.5) * utl::milli * volt;
+        const double signalThreshold7 =
+          (meanVoltage - 7 * 2.5) * utl::milli * volt;
+        const double signalThreshold8 =
+          (meanVoltage - 8 * 2.5) * utl::milli * volt;
+        const double signalThreshold9 =
+          (meanVoltage - 9 * 2.5) * utl::milli * volt;
+
+        const double binWidth = channel.GetTraceBinWidth();
+        const double startTime = channelData.GetDataStartTime();
+        unsigned int i0 = (int)( (t0 - startTime) / binWidth );
+        unsigned int i1 = (int)( (t1 - startTime) / binWidth ) + 1;
+        double timeSignal = 0.;
+        double maxSignal = 99.;
+        double meanVoltageOld = 99.;
+
+        for (unsigned int i = i0; i < i1; i++) {
+          if ((signalTrace[i] < signalThreshold) && (antennaId<4)) {
+            if (timeSignal==0) {
+              cout << tStamp.GetUTCDateTime() << " ";
+              printf("%4.0d %2.0d %2.0d  ", eventId, antennaId, channelId);
+            }
+            // print out only maximum signal
+            if ( (signalTrace[i] / (utl::milli * volt)) < maxSignal ) {
+              timeSignal = ((startTime + i * binWidth) / nanosecond);
+              maxSignal = (signalTrace[i] / (utl::milli * volt));
+              energyOld = energy;
+              thetaOld = theta;
+              phiOld = phi;
+              xCoreOld = xCore;
+              yCoreOld = yCore;
+              meanVoltageOld = meanVoltage;
+            }
+          }
+        }
+
+
+        for (size_t i = 0; i < signalTrace.size(); i++) {
+          if ( (signalTrace[i] / (utl::milli * volt)) < maxSignal ) {
+            numberAbove++;
+          }
+          if ( i>i0 && i<i1 ) {
+            if ( (signalTrace[i] / (utl::milli * volt)) < meanVoltageOld ) numberAboveMean++;
+            if ( (signalTrace[i] / (utl::milli * volt)) < (signalThreshold5 / (utl::milli * volt)) ) numberAbove5++;
+            if ( (signalTrace[i] / (utl::milli * volt)) < (signalThreshold6 / (utl::milli * volt)) ) numberAbove6++;
+            if ( (signalTrace[i] / (utl::milli * volt)) < (signalThreshold7 / (utl::milli * volt)) ) numberAbove7++;
+            if ( (signalTrace[i] / (utl::milli * volt)) < (signalThreshold8 / (utl::milli * volt)) ) numberAbove8++;
+            if ( (signalTrace[i] / (utl::milli * volt)) < (signalThreshold9 / (utl::milli * volt)) ) numberAbove9++;
+          }
+        }
+        fractionAbove = double(numberAbove) / double(signalTrace.size());
+
+        if (timeSignal!=0) {
+          // Calculate angle between shower axis and boresight axis
+          TVector3 showerAxis = shower.GetAxis();
+          TVector3 up(0., 0., 1.);
+          // shifted channels for side LNBs
+          if (channelId>=10) {
+            unsigned int channelId_temp;
+            if (channelId==10) channelId_temp=3;
+            if (channelId==11) channelId_temp=5;
+            if (channelId==12) channelId_temp=7;
+            if (channelId==13) channelId_temp=9;
+            const Channel& channel_temp = antenna.GetChannel(channelId_temp);
+            channel_temp.RotateFromChannelToAntenna(up);
+          }
+          else {
+            channel.RotateFromChannelToAntenna(up);
+          }
+          //
+          antenna.RotateFromAntennaToArray(up);
+          angle = up.Angle(showerAxis);
+//          if ( (angle*180./M_PI)<4.0 ) hasSignal = true;
+
+          // Calculate angle for given altitude
+          double altitude=0*m;
+          double coreDistance;
+          const int numAltitudes=10000;
+          double observationAngle[numAltitudes];
+          double obsAngle=(999.0*degree), obsAltitude=0.0*m;
+          TVector3 antennaPos = antenna.GetPosition();
+          for (int j=0; j<numAltitudes; j++) {
+            altitude=1.0*j;
+            coreDistance = altitude / cos(shower.GetZenith());
+            TVector3 corePosition = event.GetArrayData().GetShower().GetCore();
+            TVector3 point = corePosition + coreDistance * showerAxis;
+            TVector3 axis = point - antennaPos;
+            observationAngle[j] = up.Angle(axis);
+            if (observationAngle[j]<obsAngle) {  obsAngle = observationAngle[j];  obsAltitude = altitude;  }
+          }
+
+//          if ( (obsAngle < angleThreshold) && (printOut!=0) && (energy>(1.0e16*eV)) ) {  hasSignal = true;  }
+
+          printf( "%5.2f  %4.1f %5.1f %6.1f %6.1f  %7.1f %7.1f  %6.2f %6.2f %6.2f  %5.0f %7.5f  %4.1f  %4.1f  %10.0d  %5.2f %7.1f  %5.0f %5.0f %5.0f %5.0f %5.0f %5.0f  * \n",
+            log10(energyOld), thetaOld/degree, phiOld/degree, xCoreOld, yCoreOld,
+            timeSignal, (t1-t0), maxSignal, (signalThreshold  / (utl::milli * volt)), meanVoltageOld,
+            (numberAbove+0.001), fractionAbove, decibelAboveMean, angle/degree, gpsSec, obsAngle/degree, obsAltitude,
+            (numberAboveMean+0.001),(numberAbove5+0.001),(numberAbove6+0.001),(numberAbove7+0.001),(numberAbove8+0.001),(numberAbove9+0.001) );
+
+        }
+      } // if voltage
+    } // for channels
+  } // for antenna
+
+} // if core
+else { hasSignal = false; }
+  return hasSignal;
+}
+
+
+
+
+int main(int argc, char** argv) {
+  if ( argc < 4 ) {
+    cerr << "Usage: searchEvents level[dB] observationangle[deg] printOut[0==no] timeOffset[mus] input.root [...]" << endl;
+    return 1;
+  }
+
+  double decibelAboveMean = atof(argv[1]);
+  cout << " Threshold level in dB above mean voltage: " << decibelAboveMean << endl;
+  double angleThreshold = atof(argv[2]);
+  cout << " Threshold level for observation angle: " << angleThreshold << endl;
+  int printOut = atof(argv[3]);
+  cout << " Parameter for print out [0 = no]: " << printOut << endl;
+  double timeOffset = atof(argv[4]);
+  cout << " Time offset [mus]: " << timeOffset << endl;
+
+  vector<string> filenames;
+  for (int i = 5; i < argc; i++) {
+    filenames.push_back(string(argv[i]));
+  }
+
+  // Open the input and output files
+  EventFile inputFile(filenames);
+//  EventFile outputFile("candidates.root", EventFile::eWrite);
+
+  // Read the detector setup
+  DetectorSetup detector;
+  inputFile.ReadDetectorSetup(detector);
+  Detector::GetInstance().InitFromFile(inputFile);
+
+  // Create an event buffer and assign it to the input and output files
+  Event* event = new Event();
+  inputFile.SetEventBuffer(event);
+//  outputFile.SetEventBuffer(event);
+
+  // Loop over all events
+  cout << "# UTC - eventId - antennaId - channelId - log10(E) - th - phi - Xc - Yc - eventID - time[ns] - time19[ns] - signal[mV] - threshold[mV]" << endl;
+  cout << "# - mean[mV] - numAbove - fracAbove - threshold[dB] - emission_angle[deg] - gpsSec - observation_angle[deg] - altitude[m] - numAboveMean " << endl;
+  cout << "# - numAbove5 - numAbove6 - numAbove7 - numAbove8 - numAbove9 " << endl;
+
+
+  while ( inputFile.ReadNextEvent() == EventFile::eSuccess ) { cout << "events"<<endl;
+    if ( IsSignalCandidate(*event, detector, decibelAboveMean, angleThreshold, printOut, timeOffset) ) {
+//      outputFile.WriteEvent();
+    }
+  }
+  cout << endl;
+
+  // Finalise the output file
+//  outputFile.WriteDetectorSetup(detector);
+//  outputFile.cd();
+
+//  cout << "Found " << outputFile.GetNumberOfEvents() << " signal candidates" << endl;
+}
+

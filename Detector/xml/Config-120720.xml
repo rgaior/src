@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<Configuration>
+
+  <configLink 
+     id="MicrowaveDetector"
+     path="~/CROME/Install/config/MicrowaveDetector-120702.xml" />
+  <configLink
+     id="ChannelMap"
+     path="~/CROME/Install/config/ChannelMap-120720.xml" />
+  <configLink 
+     id="DishModels"
+     path="~/CROME/Install/config/DishModels.xml" />
+  <configLink 
+     id="ChannelModels"
+     path="~/CROME/Install/config/ChannelModels.xml" />
+  <configLink 
+     id="ArrayModels"
+     path="~/CROME/Install/config/ArrayModels.xml" />
+  <configLink 
+     id="KascadeEnergyTable"
+     path="~/CROME/Install/config/KascadeEnergyTable.txt" />
+ <configLink 
+     id="GHShowerSimulation"
+     path="~/CROME/Install/config/GHShowerGenerator.xml" />
+ <configLink 
+     id="TraceSimulator"
+     path="~/CROME/Install/config/TraceSimulator.xml" />
+ <configLink 
+     id="ElectronicsSimulator"
+     path="~/CROME/Install/config/ElectronicsSimulator.xml" />
+
+ <showerSeed> 123 </showerSeed>
+ <detectorSeed> 234 </detectorSeed>
+
+</Configuration>
+

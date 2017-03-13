@@ -1,0 +1,237 @@
+#include <Event.h>
+#include <EventFile.h>
+#include <DetectorSetup.h>
+#include <TH1D.h>
+#include <KGBits.h>
+#include <BitTools.h>
+#include <AugerUnits.h>
+#include <PhysicalConstants.h>
+#include <TraceSimulator.h>
+#include <GHShowerParameterization.h>
+
+#include <iostream>
+
+
+using namespace std;
+using namespace utl;
+
+
+enum ESelFlag {
+  eInit,
+  eVisible,
+  eHidden,
+  eFinish
+};
+
+
+double weight = 0.;
+double fSN = 0.;
+
+
+//------------------------------------------------
+bool MakePlots(Event& event, ESelFlag flag) {
+
+  //const unsigned int nplots=2;
+  static TH1D* henergy;
+  static TH1D* henergySN;
+  static TH1D* hzenith;
+  static TH1D* hzenithSN;
+  static TH1D* hSN;
+
+  if ( flag == eInit ) {
+    //TString type;
+    //for (unsigned int i=0; i<nplots; i++)  {
+    //if(i==0)
+    //type = "All";
+    //else
+    //type = "S/N";
+    //cout << "type = " << type << endl;
+
+      henergy = new TH1D("energy","energy All", 100.,16.,19.);
+      henergy->GetXaxis()->SetTitle("log_{10}(E/eV)");
+      hzenith = new TH1D("zenith","zenith All", 100,0.,50);
+      hzenith->GetXaxis()->SetTitle("zenith [deg]");
+
+      henergySN = new TH1D("energySN","energy S/N", 100.,16.,19.);
+      henergySN->GetXaxis()->SetTitle("log_{10}(E/eV)");
+      hzenithSN = new TH1D("zenithSN","zenith S/N", 100,0.,50);
+      hzenithSN->GetXaxis()->SetTitle("zenith [deg]");
+      hSN  = new TH1D("hSN","S/N", 5000.,0., 2.);
+
+      //}
+      return true;
+  }
+  else if ( flag == eFinish ) {
+
+    henergy->Write();
+    hzenith->Write();
+    henergySN->Write();
+    hzenithSN->Write();
+    hSN->Write();
+
+  }
+  else {
+
+    hSN->Fill(fSN);
+    henergy->Fill(log10(event.GetSimData().GetShower().GetEnergy()/eV), weight);
+    hzenith->Fill(event.GetSimData().GetShower().GetZenith()/deg, weight);
+    if( flag == eVisible )  {
+      henergySN->Fill(log10(event.GetSimData().GetShower().GetEnergy()/eV), weight);
+      hzenithSN->Fill(event.GetSimData().GetShower().GetZenith()/deg, weight);
+    }
+
+    return true;
+
+  }
+
+  return false;
+}
+
+
+// //------------------------------------------------
+// bool IsVisible(Event& event, double nsigma) {
+
+
+//   double maxSN = 0;
+//   for ( Event::ConstAntennaDataIterator iter = event.AntennasBegin();
+//         iter != event.AntennasEnd(); ++iter ) {
+//     for ( AntennaData::ConstChannelDataIterator chanIter =
+//             iter->ChannelsBegin();
+//           chanIter != iter->ChannelsEnd(); ++chanIter ) {
+//       const ChannelData& channelData = *chanIter;
+//       const unsigned int channelId = channelData.GetId();
+//       const std::vector<Double_t>& simtrace = channelData.GetSimulatedTrace();
+//       const std::vector<Double_t>& trace = channelData.GetSignalTrace();
+//       if ( simtrace.empty() )
+//      continue;
+//       const unsigned int simtraceLength = simtrace.size();
+//       double maxsimvalue = 0.;
+//       double base = simtrace[0];
+//       for (unsigned int j=0; j<simtraceLength; j++) {
+//      if(simtrace[j]>maxsimvalue) maxsimvalue = simtrace[j];
+//       }
+//       const unsigned int traceLength = trace.size()/4;
+//       double maxvalue = 0.;
+//       for (unsigned int j=0; j<traceLength; j++) {
+//      if(trace[j]>maxvalue) maxvalue = trace[j];
+//       }
+//       if ((maxsimvalue-base)/maxvalue > maxSN) {
+//      fSN = (maxsimvalue-base)/maxvalue;
+//      maxSN = fSN;
+//       }
+//       if((maxsimvalue-base)/maxvalue > nsigma) return true;
+//     }
+//   }
+//   return false;
+// }
+
+
+
+//------------------------------------------------
+bool IsVisible(Event& event, DetectorSetup& detector) {
+
+
+  //const double Threshold = 6.1e-23*(watt/m2/hertz);
+
+
+  for ( Event::ConstAntennaDataIterator iter = event.AntennasBegin();
+        iter != event.AntennasEnd(); ++iter ) {
+
+    const int antennaId = iter->GetId();
+    const Antenna& antenna = detector.GetAntenna(antennaId);
+
+    for ( AntennaData::ConstChannelDataIterator chanIter =
+            iter->ChannelsBegin();
+          chanIter != iter->ChannelsEnd(); ++chanIter ) {
+
+      const unsigned int channelId = chanIter->GetId();
+      const ChannelData& channelData = *chanIter;
+      const Channel& channel = antenna.GetChannel(channelId);
+
+      const std::vector<Double_t>& simtrace =
+        channelData.GetSimulatedFluxTrace();
+      if ( simtrace.empty() )
+        continue;
+
+      const unsigned int simtraceLength = simtrace.size();
+      const double bandWidth = channel.GetBandWidth();
+      const double binWidth = channel.GetTraceBinWidth();
+
+      const double dishEffArea = channel.GetBoresightEffectiveArea();
+      const double noise = channel.GetNoise();
+      const double Threshold =
+        kBoltzmann * noise / sqrt(binWidth*bandWidth) / dishEffArea;
+
+      //cout << "Threshold = " << Threshold/(watt/m2/hertz) << endl;
+      for (unsigned int j=0; j<simtraceLength; j++)
+        if(simtrace[j] >= Threshold)
+          return true;
+    }
+
+  }
+
+  return false;
+}
+
+
+//------------------------------------------------
+double MCWeight(int nShowers) {
+
+#warning be careful, this function works only for alpha = 3
+  const double NormPoint = 3.e16;
+  const double evDay = 2.6; //about 26 good events in 10 days above 3.e16
+  const double minE = 2.e16;
+  const double maxE = 3.e18;
+  double w = evDay * (1./(minE*minE)- 1./(maxE*maxE))
+    /(1./(NormPoint*NormPoint) - 1./(maxE*maxE))/ (double)nShowers;
+  return w;
+}
+
+
+//------------------------------------------------
+int main(int argc, char** argv) {
+
+  if ( argc < 2 ) {
+    cerr << " usage: AnalyzeSim <simFiles> " << endl;
+    return 1;
+  }
+  vector<string> fileNames;
+  int j = 1;
+  while ( argv[j] != NULL ) {
+    fileNames.push_back(string(argv[j]));
+    j++;
+  }
+
+  Event* event = new Event();
+  EventFile inputFile(fileNames);
+  inputFile.SetEventBuffer(event);
+  DetectorSetup detector;
+  inputFile.ReadDetectorSetup(detector);
+  EventFile outputFile("analyzeSim.root", EventFile::eWrite);
+  outputFile.SetEventBuffer(event);
+
+  weight = MCWeight(inputFile.GetNumberOfEvents());
+
+  MakePlots(*event, eInit);
+
+  while ( inputFile.ReadNextEvent() == EventFile::eSuccess ) {
+
+    if( !event->HasSimData() ) {
+      cerr << " No Sim Data in the event ... please check!" << endl;
+     return 2;
+    }
+
+    if( IsVisible( *event, detector) ) {
+      MakePlots(*event, eVisible);
+      outputFile.WriteEvent();
+    }
+    else
+      MakePlots(*event, eHidden);
+
+  }
+  outputFile.WriteDetectorSetup(detector);
+  outputFile.cd();
+  MakePlots(*event, eFinish);
+  outputFile.Close();
+
+}

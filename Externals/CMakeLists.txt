@@ -1,0 +1,2 @@
+ADD_SUBDIRECTORY (tinyxml)
+###ADD_SUBDIRECTORY (gtest)

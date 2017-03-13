@@ -1,0 +1,354 @@
+<?xml version="1.0"?>
+<MicrowaveDetector>
+
+  <!-- Period for this setup starts: 24/10/2011 -->
+  <!-- Change: Antenna 2 tilted to 75deg elevation -->
+
+  <array type="KASCADEGrandeRelocated"/>
+
+  <!-- First 3.4 m Prodelin reflector with 9 feed camera -->
+  <antenna id="1">
+     <dish type="Prodelin335"/>
+
+     <!-- Elevation angle of middle axis -->
+     <elevation> 90. </elevation>
+
+     <!-- Azimuth angle of middle axis (KASCADE coordinate system!) -->
+     <azimuth> 0. </azimuth>
+
+     <!--
+         Rotation angle of camera axis (KASCADE coordinate system!)
+
+         NOTE: This is calculated from D-GPS measurements of the segment
+               breaks. The angle was converted to the KASCADE coordinate
+               system using 15° as array azimuth angle. Add 0.25° when
+               we switch to 15.25°.
+     -->
+     <cameraAzimuth> 31.1 </cameraAzimuth>
+
+     <!--
+         Center (KASCADE coordinate system!) as measured with D-GPS
+
+         NOTE: The height is only a rough guess.
+     -->
+     <x> -209.43 </x>
+     <y> -234.72 </y>
+     <z>    0.20 </z>
+
+     <!-- Estimate of the distance to the far field -->
+     <distanceToFarField> 300. </distanceToFarField>
+
+     <!-- List of channels -->
+     <channel id="1" type="C3">
+       <!--
+           Middle axis of this channel in the local camera coordinate
+           system
+       -->
+       <elevation> 90.0 </elevation>
+       <azimuth> 0.0 </azimuth>
+
+       <!--
+           Position of this channel in the local antenna coordinate
+           system
+       -->
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 201.8 </cableDelay>
+
+       <!--
+           Path to a simulated gain pattern
+
+           NOTE: The main lobe is expected to be at phi = 0° (i.e., east)
+                 and at the correct elevation. The pattern will be rotated
+                 by the above azimuth angle.
+       -->
+       <gainPatternFile> GainPattern-grasp-central_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="2" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 0.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 201.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="3" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 315.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 201.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="4" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 270.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 200.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="5" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 225.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 201.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="6" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 180.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 195.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="7" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 135.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 195.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="8" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 90.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 196.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="9" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 45.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 195.8 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+  </antenna>
+
+  <!-- Second 3.4 m Prodelin reflector with 9 feed camera -->
+  <antenna id="2">
+     <dish type="Prodelin335"/>
+
+     <!-- Elevation angle of middle axis -->
+     <elevation> 75. </elevation>
+
+     <!--
+         Azimuth angle of middle axis (KASCADE coordinate system!)
+         as measured with compass binoculars
+     -->
+     <azimuth> 99.5 </azimuth>
+
+     <!--
+         Rotation angle of camera axis (KASCADE coordinate system!)
+         as measured with D-GPS
+     -->
+     <cameraAzimuth> 50.5 </cameraAzimuth>
+
+     <!--
+         Center (KASCADE coordinate system!) as measured with D-GPS
+
+         NOTE: The height is only a rough guess.
+     -->
+     <x> -213.41 </x>
+     <y> -239.61 </y>
+     <z>    1.70 </z>
+
+     <!-- Estimate of the distance to the far field -->
+     <distanceToFarField> 300. </distanceToFarField>
+
+     <!--
+         List of channels (identical to camera of first Prodelin reflector)
+     -->
+     <channel id="1" type="C3">
+       <!--
+           Middle axis of this channel in the local camera coordinate
+           system
+       -->
+       <elevation> 90.0 </elevation>
+       <azimuth> 0.0 </azimuth>
+
+       <!--
+           Position of this channel in the local antenna coordinate
+           system
+       -->
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.0 </cableDelay>
+
+       <!--
+           Path to a simulated gain pattern
+
+           NOTE: The main lobe is expected to be at phi = 0° (i.e., east)
+                 and at the correct elevation. The pattern will be rotated
+                 by the above azimuth angle.
+       -->
+       <gainPatternFile> GainPattern-grasp-central_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="2" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 0.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 197.0 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="3" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 315.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.5 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="4" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 270.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.5 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="5" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 225.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.5 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="6" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 180.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.2 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="7" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 135.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 197.7 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="8" type="C3">
+       <elevation> 86.2 </elevation>
+       <azimuth> 90.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.2 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-side_feed.xml </gainPatternFile>
+     </channel>
+
+     <channel id="9" type="C3">
+       <elevation> 84.6 </elevation>
+       <azimuth> 45.0 </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 198.0 </cableDelay>
+       <gainPatternFile> GainPattern-grasp-corner_feed.xml </gainPatternFile>
+     </channel>
+  </antenna>
+
+
+  <!-- 90 cm Kathrein reflector with one feed -->
+  <antenna id="4">
+     <dish type="Kathrein090"/>
+
+     <!-- Elevation angle of middle axis -->
+     <elevation> 90. </elevation>
+
+     <!--
+         Azimuth angle of middle axis (KASCADE coordinate system!)
+
+         NOTE: This value is unknown.
+     -->
+     <azimuth> 0. </azimuth>
+
+     <!--
+         Rotation angle of camera axis (KASCADE coordinate system!)
+
+         NOTE: This value is unknown.
+     -->
+     <cameraAzimuth> 0. </cameraAzimuth>
+
+     <!--
+         Center (KASCADE coordinate system!) as measured with D-GPS
+
+         NOTE: The height is only a rough guess.
+     -->
+     <x> -209.43 </x>
+     <y> -234.72 </y>
+     <z>    0.10 </z>
+
+     <!-- Estimate of the distance to the far field -->
+     <distanceToFarField> 300. </distanceToFarField>
+
+     <!-- List of channels -->
+     <channel id="1" type="lowKu1">
+       <!--
+           Middle axis of this channel in the local camera coordinate
+           system
+       -->
+       <elevation> 90.0 </elevation>
+       <azimuth> 0.0 </azimuth>
+
+       <!--
+           Position of this channel in the local antenna coordinate
+           system
+       -->
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 0. </z>
+       <cableDelay> 80.5 </cableDelay>
+
+       <!--
+           Boresight gain (dBi)
+
+           NOTE: Calculated for 60% efficiency and the middle frequency
+                 of the Ku-band.
+       -->
+       <gain> 38.26 </gain>
+     </channel>
+  </antenna>
+
+</MicrowaveDetector>

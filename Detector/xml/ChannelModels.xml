@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<ChannelModels>
+
+   <!-- low Ku band setup: without Soontai bpf and MiniCircuit hpf -->
+   <channel type="lowKu1">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime>
+      <!-- band width in Hz -->
+      <bandWidth> 1.0e9 </bandWidth>
+      <!-- center frequency in Hz -->
+      <centerFrequency> 11.2e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+   <!-- 1st C band setup: no hpf or bpf -->
+   <channel type="C1">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime>
+      <!-- band width in Hz -->
+      <bandWidth> 0.800e9 </bandWidth>
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.685e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+   <!-- 1st C band setup: no hpf or bpf (14/9-19/10)-->
+   <channel type="C1b">
+      <!-- number of trace bins -->
+      <nTraceBins> 50000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -25e-6 </traceStartTime>
+      <!-- band width in Hz -->
+      <bandWidth> 0.800e9 </bandWidth>
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.685e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+   <!-- 2nd C band setup: with Soontai bpf -->
+   <channel type="C2">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime>
+      <!-- band width in Hz -->
+      <bandWidth> 0.700e9 </bandWidth>
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.750e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+   <!-- 3rd C band setup: with MiniCircuit hpf -->
+   <channel type="C3">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime>
+      <!-- band width in Hz -->
+      <bandWidth> 0.570e9 </bandWidth>
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.685e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+
+   <!-- PREVIOUS -->
+   <channel type="protoCROME">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime> 
+      <!-- band width in Hz -->
+      <bandWidth> 0.8e9 </bandWidth> 
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.9e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+   <channel type="CROMEsetup1Kband">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime> 
+      <!-- band width in Hz -->
+      <bandWidth> 0.8e9 </bandWidth> 
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.9e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+   <channel type="CROMEsetup1Cband">
+      <!-- number of trace bins -->
+      <nTraceBins> 25000 </nTraceBins>
+      <!-- start time of trace in sec -->
+      <traceStartTime> -10e-6 </traceStartTime> 
+      <!-- band width in Hz -->
+      <bandWidth> 0.8e9 </bandWidth> 
+      <!-- center frequency in Hz -->
+      <centerFrequency> 3.9e9 </centerFrequency>
+      <noise> 50 </noise>
+      <!-- time width of trace bin in sec -->
+      <traceBinWidth> 0.8e-9 </traceBinWidth>
+   </channel>
+
+</ChannelModels>

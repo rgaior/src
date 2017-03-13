@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<Configuration>
+  <configLink id="ChannelMap" path="HandlesWrongKGStationTriggerTimeRange-Map.xml" />
+  <showerSeed> 1 </showerSeed>
+  <detectorSeed> 1 </detectorSeed>
+</Configuration>

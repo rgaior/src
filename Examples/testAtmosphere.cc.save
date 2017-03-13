@@ -1,0 +1,48 @@
+#include <Atmosphere.h>
+#include <AugerUnits.h>
+#include <PhysicalConstants.h>
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
+using namespace utl;
+
+int main() {
+
+  const Atmosphere& atmo = Atmosphere::GetInstance();
+
+  double height = 0*m;
+  const double dHeight1 = 1*km;
+  const double dHeight2 = 10*km;
+
+  while ( height < 50*km ) {
+
+    const double X = atmo.Depth(height,1.);  
+
+    cout << "h=" << showpoint << setiosflags(ios::fixed)  << setprecision(1)
+         << setw(4) << height/km << " km, " 
+         << "X=" << setprecision(1) << setw(7) <<  X/g*cm2 << " g/cm^2 "
+         << "h(X)=" << setprecision(1) << setw(4) 
+         << atmo.Height(X,1.)/km << " km, " 
+         << "T=" << setprecision(1) << setw(5) 
+         << atmo.Temperature(height) << " K, " << setprecision(6)
+         << "n(400 nm)="
+         << atmo.RefrIndex(height,kSpeedOfLight/(400*nanometer)) << ", "
+         << "n(1GHz)="
+         << atmo.RefrIndex(height,1*GHz) << ", "
+         << resetiosflags(ios::scientific) << setprecision(2)
+         << "dT(1GHz)=" << atmo.GetTimeOfFlight(0.,height,1.,1*GHz)-
+                           height/kSpeedOfLight
+         << " ns, " 
+         << " rMoliere=" << atmo.MoliereRadius(X,1.) << " m" 
+         << endl;
+
+
+    if ( height < 10*km ) 
+      height+=dHeight1;
+    else
+      height+=dHeight2;
+  }
+
+
+}

@@ -1,0 +1,303 @@
+<?xml version="1.0"?>
+<ReceiverModels>
+  <!-- ToDo:
+  
+    1) serial numbers of LNBs
+    2) gain of LNBs
+    
+  -->
+
+  <!-- receiver id: 1 = LNB low Ku, 2 = LNB high Ku, 3 = Panorama C band, 4 = Norsat C band -->
+
+  <Models>
+     <receiver id="1">
+        <minFrequency> 10.7e9 </minFrequency>
+        <maxFrequency> 11.7e9 </maxFrequency>
+        <polarization> linear </polarization>
+     </receiver>
+     <receiver id="2">
+        <minFrequency> 11.7e9 </minFrequency>
+        <maxFrequency> 12.75e9 </maxFrequency>
+        <polarization> linear </polarization>
+     </receiver>
+     <receiver id="3">
+        <minFrequency> 3.4e9 </minFrequency>
+        <maxFrequency> 4.2e9 </maxFrequency>
+        <polarization> linear </polarization>
+     </receiver>
+     <receiver id="4">
+        <minFrequency> 3.4e9 </minFrequency>
+        <maxFrequency> 4.2e9 </maxFrequency>
+        <polarization> linear </polarization>
+     </receiver>
+     <receiver id="5">  <!-- L band dipole -->
+        <minFrequency> 1.3e9 </minFrequency> <!-- fake -->
+        <maxFrequency> 1.7e9 </maxFrequency> <!-- fake -->
+        <polarization> linear </polarization>
+     </receiver>
+  </Models>
+
+  <Devices>
+
+    <!--  Norsat 8215  C band -->
+    <receiver id="101" type="4"> <!--  Norsat 1  -->
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="102" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="103" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="104" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="105" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="106" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="107" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="108" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="109" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <!-- side LNBs -->
+    <receiver id="110" type="4"> <!--  Norsat 1  -->
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="111" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="112" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="113" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+    <!-- 2nd antenna -->
+    <receiver id="201" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="202" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="203" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="204" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="205" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="206" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="207" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="208" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="209" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <!-- side LNBs -->
+    <receiver id="210" type="4"> <!--  Norsat 1  -->
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="211" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="212" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="213" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+
+    <!-- 3rd antenna -->
+    <receiver id="301" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="302" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="303" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="304" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="305" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="306" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="307" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="308" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="309" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <!-- side LNBs -->
+    <receiver id="310" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="311" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="312" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="313" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+
+    <receiver id="41" type="1"> <!-- Kathrein 1 -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="42" type="1"> <!-- Kathrein 2 -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="43" type="1"> <!-- Kathrein 3 -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="44" type="1"> <!-- Kathrein 4 -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+
+    <receiver id="51" type="1"> <!--  Panorama Ku band -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="52" type="3"> <!--  Panorama ER861 C band -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+    <receiver id="53" type="3"> <!--  Panorama ER861 C band -->
+      <serial> 1234 </serial>
+      <conversionGain> 55 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+
+    <receiver id="61" type="5"> <!--  L band dipole  -->
+      <serial> 1234 </serial>
+      <conversionGain> 60 </conversionGain> <!-- dB -->
+      <noiseTemperature> 50 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+
+    <!-- fake receivers -->
+    <receiver id="91" type="4">
+      <serial> 1234 </serial>
+      <conversionGain> 64 </conversionGain> <!-- dB -->
+      <noiseTemperature> 15 </noiseTemperature> <!-- FAKE number -->
+    </receiver>
+
+  </Devices>
+
+</ReceiverModels>

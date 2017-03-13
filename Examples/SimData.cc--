@@ -1,0 +1,473 @@
+
+#include <boost/foreach.hpp>
+#include <TRandom3.h>
+#include <typeinfo>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+#include <GHShowerParameterization.h>
+#include <Configuration.h>
+#include <GHShowerGenerator.h>
+#include <TraceSimulator.h>
+#include <BackgroundSimulator.h>
+#include <ElectronicsSimulator.h>
+#include <KGSimulator.h>
+#include <Event.h>
+#include <EventFile.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <TimedClass.h>
+#include <AugerUnits.h>
+#include <Atmosphere.h>
+#include <PhysicalConstants.h>
+#include <BackgroundSimulator.h>
+#include <ElectronicsSimulator.h>
+#include <KGSimulator.h>
+
+using namespace std;
+using namespace utl;
+
+//Initialize simulation
+TraceSimulator* gTraceSimulator = NULL;
+GHShowerParameterization* gGHParameters = NULL;
+KGSimulator* kgSimulator = NULL;
+
+void fillEvent(string name,int i, Event*);
+void SimulateShower(string dataFilename, Event& theEvent, DetectorSetup& detectorsetup);
+void FillDataTraces(string dataFilename, Event& theEvent,  const Detector& detector, DetectorSetup& detectorsetup);
+void addChannels(Event& event) {
+  BOOST_FOREACH(Antenna antenna, Detector::GetInstance().GetSetup().GetAntennas()) {
+    event.MakeAntennaData(antenna.GetId());
+    AntennaData& antennaData = event.GetAntennaData(antenna.GetId());
+    BOOST_FOREACH(Channel channel, antenna.GetChannels()) {
+      antennaData.MakeChannelData(channel.GetId());
+    }
+  }
+}
+
+/************************************************************************************/
+int main(int argc, char** argv)
+{
+  if (argc < 2) {
+    cerr << "Usage: " << argv[0] << " Config.xml <dat files> [...]" << endl;
+    return 1;
+  }
+  // Detector configuration
+  Configuration& config = Configuration::GetInstance();
+  config.Init(string(argv[1]));
+  //Initialize detector (array, antennas...)
+  Detector::GetInstance().Init(); 
+  cout << "Intializing detector [OK] ..."<<endl;
+  const Detector& detector = Detector::GetInstance();
+  // Create a detector setup based on the configuration
+  const DetectorSetup& detectorSetup = Detector::GetInstance().GetSetup();
+  DetectorSetup detectorsetup;
+  EventFile testFile("test.root", EventFile::eWrite); //output file 
+  const int nFiles = argc -2;
+  const unsigned int nEvents = nFiles;
+  vector<string> datFilenames;
+  
+  //Read .dat files
+  for ( int i = 0 ; i < nFiles ; ++i )  datFilenames.push_back(string(argv[2+i]));
+  //Loop on events
+  int evt = 0;
+  for ( unsigned int i = 0 ; i < nEvents ; i++ ) { 
+    gTraceSimulator = new TraceSimulator(&detectorsetup);
+    gGHParameters = new GHShowerParameterization(100);
+    kgSimulator = new KGSimulator();
+
+    //Start a fresh event
+    Event* testEvent = new Event(); 
+    testFile.SetEventBuffer(testEvent);
+
+    //Fill simulated traces
+    SimulateShower(datFilenames[i],*testEvent, detectorsetup); 
+    cout << "Simulating showers [OK] ......."<<endl;
+
+    // Fill data traces
+    FillDataTraces(datFilenames[i],*testEvent, detector, detectorsetup); 
+    cout << "Acquiring Data traces [OK]......"<<endl;
+    testFile.WriteEvent();
+    evt++;
+  }
+  cout << "--> Total number of events: "<<evt<<endl;
+  testFile.WriteDetectorSetup(Detector::GetInstance().GetSetup());
+  testFile.Close();
+
+}
+
+/*************************************************************************************/
+
+void FillDataTraces(string dataFilename, Event& theEvent, const Detector& detector, DetectorSetup& detectorsetup) { 
+
+  ifstream datfile; 
+
+  const Array& array = detectorsetup.GetArray();
+  const std::vector<Antenna> Antennas = detector.GetSetup().GetAntennas();
+  for(unsigned int iAntenna = 0 ; iAntenna < Antennas.size() ; iAntenna++) {
+    const Antenna& antenna = Antennas[iAntenna];
+    const unsigned int antennaId = antenna.GetId(); 
+    AntennaData& antennaData = (&theEvent)->GetAntennaData(antennaId);
+    ArrayData& arrayData = (&theEvent)->GetArrayData();
+    const std::vector<Channel>& Channels = antenna.GetChannels();
+    for(unsigned int iCh=0; iCh<Channels.size(); iCh++) {
+      StationData& theStation = arrayData.GetStationData(antennaId);
+      const Channel& channel = Channels[iCh];
+      const unsigned int channelId = channel.GetId();
+      cout << " Requesting antenna "<< antennaId << ".... "<<endl;
+      ostringstream filename;
+      string line; int countline =0; 
+      int stat_id ; 
+      double starttime ; 
+      int bin, adc;
+     
+      filename << string(dataFilename);
+      datfile.open(filename.str().c_str());
+      ChannelData& channelData = antennaData.GetChannelData(channelId);
+      channelData.MakeRealDataTrace(channelData.GetSimulationStartTime(), channelData.GetSimulationBinWidth(), channelData.GetSimulationBinCount());
+      std::vector<double>& trace = channelData.GetRealDataTrace(); //calibrated trace
+      //std::vector<double> traceadc = theStation.GetSignal() ; //raw ADC trace
+      if(datfile.is_open()) {
+        while(1) {
+           
+          if(!datfile.good()) break;
+          getline(datfile,line);
+          size_t pos = line.find("Station:") ;
+          
+          if(pos!=std::string::npos) {
+            string station = line.substr(pos+9); 
+            string starttimes = line.substr(pos+22,3);
+            stat_id = atoi(station.c_str());
+            starttime = atof(starttimes.c_str())*channel.GetTraceBinWidth(); 
+            
+            if(stat_id!=antennaId) {
+              for(int ii=0;ii<768; ii++) 
+              datfile>>bin>>adc;
+              cout << "Station "<< antennaId <<" NOT found in data ..........."<<endl;
+              
+            } 
+            else {  
+              cout << "Station "<< antennaId <<" found in data ..........."<<endl;  
+              AntennaData theAntenna; 
+              theAntenna.SetId(stat_id); 
+              theStation.SetId(stat_id) ; 
+              theStation.SetSignalStartTime(starttime); // this to synchronize time frames
+              for(int ii=0 ; ii < 768 ; ii++) { 
+                datfile>>bin>>adc;
+ 	        double G_LNB = 65;
+                double Vin_UB= (56. - adc)/502.;
+                double A = -0.093, B= -2.46, Offset=-0.8;
+                double Pin_PD = (Vin_UB - B - Offset)/A;    // new GHz ecard
+                double Psys = pow(10, (Pin_PD- G_LNB)/10.); //in m Watt
+                trace[ii] = Psys*1e-3;//*1e9; 
+              } 
+              theStation.SetSignal(trace);
+              if (!theStation.HasSignal()) arrayData.AddStationData(theStation);   
+              break; 
+             }
+            
+          }
+        }   
+       
+      datfile.close();
+     
+      }  
+      else  cout << "Unable to open file"<<endl; 
+    }
+  }
+}
+
+
+void SimulateShower(string dataFilename,Event& theEvent, DetectorSetup& detectorsetup) { 
+  
+  cout.precision(9);
+  
+  TraceSimulator traceSimulator;
+  BackgroundSimulator bgSimulator;
+  ElectronicsSimulator elecSimulator;
+
+  ifstream datfile;
+  int countline = 0;
+  double E, x, y, theta, phi, startimesec;
+  long int gps; char c; int startime;
+  ostringstream filename;
+  string line;
+  filename << string(dataFilename);
+  datfile.open(filename.str().c_str());
+  
+  if (datfile.is_open()) {
+    cout << " ********************" <<filename.str().c_str() <<" is open **************************"<<endl;
+    while(getline(datfile, line)) {
+      if (countline==0)  {
+        datfile>>E>>x>>y>>theta>>phi>>gps;
+        sscanf(line.c_str(), "%lf %lf %lf %lf %lf %li", &E,&x, &y, &theta, &phi, &gps);
+        cout <<"Energy (EeV) : "<<E<<" | X(m): "<<x<<" | Y(m): "<<y<<" | theta: "<<theta<<" | Phi: "<<phi<<" | GPS time: "<<gps<<endl;
+	string ID = dataFilename.substr(40); // This has to be changed
+        istringstream buf(ID); 
+    	long int eventId ; 
+        buf >> eventId; 
+        //Fill event information
+        (&theEvent)->SetEventId(eventId); cout << "check IDs: "<< eventId <<" "<<(&theEvent)->GetEventId()<<endl;
+        (&theEvent)->SetRunId(123);
+        (&theEvent)->SetGPSSecond(gps);
+        //Fill the associated shower
+        Shower& theShower = (&theEvent)->GetArrayData().GetShower();
+        theShower.SetEnergy(E*1.E18);
+        TVector3 core;
+        core.SetXYZ(x,y,0);
+        theShower.SetCore(core);  //shower.SetCoreError();
+        TVector3 axis(1); 
+        axis.SetTheta(theta*degree); 
+        axis.SetPhi(phi*degree);
+        theShower.SetAxis(axis);  //shower.SetAxisError(theta,phi);
+        GHShowerParameterization ghParameters(100); //protons
+        ghParameters.FillShower(theShower, theShower.GetEnergy(), 2.5*(g/cm2), theShower.GetCosZenith(), true, detectorsetup);
+        //Copy it into simulation
+        (&theEvent)->GetSimData().GetShower() = (&theEvent)->GetArrayData().GetShower();
+        // Run the simulation
+        addChannels(theEvent);
+    	cout << "Running simulation... " << flush;
+    	traceSimulator.Run(theEvent);
+   	bgSimulator.Run(theEvent);
+    	elecSimulator.Run(theEvent);
+        kgSimulator->Run(theEvent);
+    	cout << "... done." << endl;
+      }
+    }
+  } 
+  datfile.close();
+}
+
+
+void fillEvent(string dataFilename,int iEvent, Event* theEvent) {
+
+  // Create a detector setup based on the configuration
+  const DetectorSetup& detectorSetup = Detector::GetInstance().GetSetup();
+  DetectorSetup detectorsetup;
+
+  const Detector& detector = Detector::GetInstance();
+  const unsigned int nAntennas = detector.GetSetup().GetAntennas().size(); 
+  if ( nAntennas <= 0 ) {
+    cerr << " error: no antennas in detector " << endl;
+    return;
+  }
+
+  // Read E, x, y, theta, phi, gpstime from first line of file; and simulate shower
+  const unsigned int nTraceBins = 768;
+  ifstream datfile;
+  cout.precision(9);  
+  int countline = 0; int bin,adc;
+  double E,x,y,theta,phi; 
+  long int gps; char c;
+  ostringstream filename;
+  int Nstations =0; string line; 
+  filename << string(dataFilename);
+  datfile.open(filename.str().c_str());
+  if (datfile.is_open()) {
+    int stat_id=-1; vector <int> stations; 
+    cout << " ********************" <<filename.str().c_str() <<" is open **************************"<<endl;
+    while(getline(datfile, line)) {
+      if (countline==0) 
+        {
+          datfile>>E>>x>>y>>theta>>phi>>gps; 
+          sscanf(line.c_str(), "%lf %lf %lf %lf %lf %li", &E,&x, &y, &theta, &phi,&gps);
+          cout <<E<<" "<<x<<" "<<y<<" "<<theta<<" "<<phi<<" "<<gps<<endl;
+     
+        }
+      else { cout <<"Im here  <<<<<"<<endl;
+          getline(datfile,line);
+          int countStat =0;
+          size_t pos = line.find("Station:") ; 
+          if (pos!=std::string::npos) {
+            string station = line.substr(pos+9); cout << "-------------> Station :"<<station<<endl;
+            stat_id=atoi(station.c_str());
+            stations.push_back(stat_id);            
+            AntennaData theAntenna;
+            theAntenna.SetId(stat_id);
+            for ( unsigned int j=0; j<1; j++ ) {
+              ChannelData theChannel;
+              theChannel.GetId();
+              theChannel.MakeDataTrace(-2000*ns, 25*ns,768);
+              vector<Double_t>& dataTrace = theChannel.GetDataTrace(); 
+              for(int ii=0;ii<768; ii++) {
+                datfile >> bin >> adc;
+                dataTrace.push_back(adc); 
+              }
+            theAntenna.AddChannelData(theChannel);
+            }
+           theEvent->AddAntennaData(theAntenna);
+           countStat++; 
+         }
+         int NStations=countStat;
+        }
+      countline++;
+    }
+    size_t pos = line.find("NStations") ; 
+    int statnumber = atoi((line.substr(pos+9)).c_str());
+    // cout <<"--------->" <<statnumber<< " touched antennas... "<<endl;
+    // start with a fresh event
+    *theEvent = Event();
+    string ID = dataFilename.substr(38,12);istringstream buf(ID); cout << dataFilename <<" "<<ID<<endl;
+    long int eventId ; 
+    buf >> eventId;
+    theEvent->SetEventId(eventId);
+    theEvent->SetRunId(123);
+    theEvent->SetGPSSecond(gps);
+    Shower& theShower = theEvent->GetArrayData().GetShower();
+    //Energy
+    theShower.SetEnergy(E*1.E18); 
+    //core
+    TVector3 core; 
+    core.SetXYZ(x,y,0);
+    theShower.SetCore(core);  //shower.SetCoreError();
+    //axis
+    TVector3 axis(1); axis.SetTheta(theta); axis.SetPhi(phi); 
+    theShower.SetAxis(axis);  //shower.SetAxisError(theta,phi);
+    //cout << "shower ok ..."<<endl;
+    // Set these parameters into array data
+    theEvent->GetArrayData().SetShower(theShower);
+    // Create the simulation chain
+    GHShowerParameterization ghParameters(100); //protons
+    // copy the shower parameters to create simulation data
+    theEvent->GetSimData().GetShower() = theEvent->GetArrayData().GetShower(); 
+    cout << "theta "<<theta <<" Phi "<<phi<<endl;
+    ghParameters.FillShower(theShower, theShower.GetEnergy(), 2.5*(g/cm2), theShower.GetCosZenith(), true, detectorsetup);
+    TraceSimulator traceSimulator;
+    vector<Double_t> trace;
+    double startTime;
+    BackgroundSimulator bgSimulator;
+    ElectronicsSimulator elecSimulator;
+    KGSimulator kgSimulator;
+    // Run the simulation
+    addChannels(*theEvent);
+    cout << "Running simulation... " << flush;
+    traceSimulator.Run(*theEvent);
+    bgSimulator.Run(*theEvent);
+    elecSimulator.Run(*theEvent);
+    kgSimulator.Run(*theEvent);
+    cout << "done." << endl;
+ 
+    /*for ( unsigned int i=0; i<stations.size(); i++ ) {
+      AntennaData theAntenna;
+      theAntenna.SetId(stations[i]);
+      for ( unsigned int j=0; j<1; j++ ) { //one station per channel
+        ChannelData theChannel;
+        theChannel.GetId();
+        theChannel.MakeDataTrace(-2000*ns, 25*ns,768);
+        vector<Double_t>& dataTrace = theChannel.GetDataTrace(); 
+        //cout <<" Get data trace ok... "<<endl;
+         for ( unsigned int k=0; k<nTraceBins; k++ ) {
+          dataTrace.push_back(stat[i][k]);
+        }
+        theAntenna.AddChannelData(theChannel);
+      }
+      theEvent->AddAntennaData(theAntenna);
+    }*/
+
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*int main(int argc, char** argv)
+{
+  if (argc < 2) {
+    cerr << "Usage: " << argv[0] << " Config.xml <dat files> [...]" << endl;
+    return 1;
+  }
+
+  // Parse the configuration file
+  Configuration& config = Configuration::GetInstance();
+  config.Init(string(argv[1]));
+
+  // Create a detector setup based on the configuration
+  Detector::GetInstance().Init();
+  const DetectorSetup& detectorSetup = Detector::GetInstance().GetSetup();
+  DetectorSetup detector;
+
+  //output files
+  EventFile eventFile("converted.root", EventFile::eWrite); // change this to monthly based naming 
+  const int nFiles = argc -2;
+  vector<string> datFilenames; 
+  ifstream datfiles[nFiles];
+  //loop on events(1 file = 1 event) 
+  for ( int i = 0; i < nFiles; ++i )  datFilenames.push_back(string(argv[2+i]));
+  for ( int i = 0; i < nFiles; ++i ) {
+    int countline = 0;
+    double E,x,y,theta,phi;
+    long int gps; char c;
+    ostringstream filename;
+    filename << string(argv[2+i]);
+    datfiles[i].open(filename.str().c_str());
+
+    if (datfiles[i].is_open()) {
+      cout << filename.str().c_str() <<" is open."<<endl;
+      Event event;
+      Shower& shower = event.GetSimData().GetShower();
+      while(datfiles[i].get(c)) {
+        if (countline==0) datfiles[i]>>E>>x>>y>>theta>>phi>>gps;
+        countline++;
+      }
+      //shower
+      shower.SetEnergy(E*1.e18);   //shower.SetEnergyError();
+      //core
+      TVector3 core; 
+      core.SetXYZ(x,y,0);
+      shower.SetCore(core);  //shower.SetCoreError();
+      //axis
+      TVector3 axis(1); axis.SetTheta(theta); axis.SetPhi(phi);
+      shower.SetAxis(axis);  //shower.SetAxisError(theta,phi);
+      // Set these parameters into array data
+      event.GetArrayData().SetShower(shower);
+      // Create the simulation chain
+      GHShowerParameterization ghParameters(100); //protons
+      // copy the shower parameters to create simulation data
+      event.GetSimData().GetShower() = event.GetArrayData().GetShower();
+      ghParameters.FillShower(shower, shower.GetEnergy(), 2.5*(g/cm2), shower.GetCosZenith(), true, detector);
+      TraceSimulator traceSimulator;
+      // Run the simulation
+      cout << "Running simulation... " << flush;
+      traceSimulator.Run(event);
+      cout << "done." << endl;
+      // Now fill the event characteristics
+      eventFile.SetEventBuffer(&event);
+      string ID = datFilenames[i].substr(38,12); istringstream buf(ID);
+      long int eventId ; buf >> eventId;
+      event.SetEventId(eventId);
+      event.SetGPSSecond(gps);
+      cout << "Event ID " << eventId<<endl;
+      eventFile.WriteEvent();
+    }
+    else cout << "could not open file!"<<endl;
+    datfiles[i].close();
+  }
+  cout << "Writing detector setup.." << endl;
+  eventFile.WriteDetectorSetup(detectorSetup);
+
+
+
+  return 0;
+}*/

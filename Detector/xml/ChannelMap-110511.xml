@@ -1,0 +1,338 @@
+<?xml version="1.0"?>
+<ChannelMap>
+  <!-- digitizer id: 1 = PicoScope A, 2 = PicoScope B, 3 = PicoScope C, 4 = PicoScope D, 5 = PicoScope E -->
+  <!-- antenna id: see MicrowaveDetector*.xml  -->
+  <!-- receiver id: 1 = Norsat 1, 2 = Norsat 2, etc., Kathrein 1 -->
+
+
+  <!-- a1 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="1" />
+      <receiver id="1" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="1">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- a2 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="2" />
+      <receiver id="2" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="1">
+      <channel> 2 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- a3 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="3" />
+      <receiver id="3" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="1">
+      <channel> 3 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- a4 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="4" />
+      <receiver id="4" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="1">
+      <channel> 4 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+  <!-- Picoscope B -->
+  <!-- b1 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="5" />
+      <receiver id="5" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="2">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- b2 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="6" />
+      <receiver id="6" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="2">
+      <channel> 2 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- b3 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="7" />
+      <receiver id="7" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="2">
+      <channel> 3 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- b4 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="8" />
+      <receiver id="8" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="2">
+      <channel> 4 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+  <!-- Picoscope C -->
+  <!-- c1 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="9" />
+      <receiver id="9" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="3">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- c2 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="1" />
+      <receiver id="10" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="3">
+      <channel> 2 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- c3 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="2" />
+      <receiver id="11" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="3">
+      <channel> 3 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- c4 -->
+  <channel>
+    <signalSource type="kgStation">
+      <kgStation id="19">
+        <minTriggerTime> -2.2e-6 </minTriggerTime>
+        <maxTriggerTime> -1.4e-6 </maxTriggerTime>
+        <triggerTimeOffset> 37.6e-9 </triggerTimeOffset>
+      </kgStation>
+    </signalSource>
+
+    <digitizer id="3">
+      <channel> 4 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+  <!-- Picoscope D -->
+  <!-- d1 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="3" />
+      <receiver id="12" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="4">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- d2 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="4" />
+      <receiver id="13" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="4">
+      <channel> 2 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- d3 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="5" />
+      <receiver id="14" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="4">
+      <channel> 3 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- d4 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="6" />
+      <receiver id="15" />
+      <electronicsChain id="5" />
+    </signalSource>
+
+    <digitizer id="4">
+      <channel> 4 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+  <!-- Picoscope E -->
+  <!-- e1 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="7" />
+      <receiver id="16" />
+      <electronicsChain id="6" />
+    </signalSource>
+    <digitizer id="5">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- e2 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="8" />
+      <receiver id="17" />
+      <electronicsChain id="6" />
+    </signalSource>
+
+    <digitizer id="5">
+      <channel> 2 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- e3 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="2" channel="9" />
+      <receiver id="18" />
+      <electronicsChain id="6" />
+    </signalSource>
+
+    <digitizer id="5">
+      <channel> 3 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+  <!-- e4 -->
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="4" channel="1" />
+      <receiver id="41" />
+      <electronicsChain id="6" />
+    </signalSource>
+
+    <digitizer id="5"> <!--  5 = PicoScope E  -->
+      <channel> 4 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+</ChannelMap>

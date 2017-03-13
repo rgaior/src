@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<TimeOffsetTable>
+  <!-- Measured time difference between a trigger from KG DAQ and signal from the discriminator in station 19 sent via 750m long RG-58 cable  -->
+  <!-- Propagation time in the cable from station 19 is 3100 ns -->
+  <!-- Times are in global time (Gt), i.e. number of seconds since 1.1.1970 UTC -->
+
+  <timeOffset startGt="1000000000" stopGt="1292585583"> -1.54e-6 </timeOffset> <!-- no measured signal from st.19 -->
+  <timeOffset startGt="1292585583" stopGt="1294667542"> -1.54e-6 </timeOffset> <!-- original setup (17/12): 3 peaks at -1.52, -1.54 and -1.56 mus -->
+  <timeOffset startGt="1294667542" stopGt="1300960000"> -1.54e-6 </timeOffset> <!-- unknown reason (10/1): 4th peak at -1.61 mus in the distribution -->
+  <timeOffset startGt="1300960000" stopGt="1301392900"> -1.547e-6 </timeOffset> <!-- unknown reason (24/3): peaks shifted to -1.528, -1.547, -1.568 mus, no 4th peak -->
+  <timeOffset startGt="1301392900" stopGt="1303221953"> -1.56e-6 </timeOffset> <!-- delay cables in KG daq (29/3): prominent peak around -1.56 mus -->
+  <timeOffset startGt="1303221953" stopGt="1307362823"> -1.51e-6 </timeOffset> <!-- monoflop removed (19/4): prominent peak at -1.51 mus -->
+  <timeOffset startGt="1307362823" stopGt="9999999999"> -2.09e-6 </timeOffset> <!-- new KG trigger (6/6): prominent peak at -2.09 mus -->
+  <!-- ... -->
+
+  <!-- WHAT is still missing:
+    1) propagation time of GHz signal through LNBs, coaxial cables and electronic boxes to a picoscope
+  -->
+</TimeOffsetTable>

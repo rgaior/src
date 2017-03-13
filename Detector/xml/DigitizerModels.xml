@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<DigitizerModels>
+
+  <Models>
+    <!--  PicoScope 6403  -->
+    <digitizer id="1">
+      <nChannels> 4 </nChannels>
+      <!-- Analog bandwidth in Hz. -->
+      <analogBandwidth> 350e6 </analogBandwidth>
+      <!-- Size of buffer memory in number of samples. -->
+      <bufferMemory> 1e9 </bufferMemory>
+      <!-- Vertical resolution in bits. -->
+      <verticalResolution> 8 </verticalResolution>
+    </digitizer>
+
+    <!--   PicoScope 6402  -->
+    <digitizer id="2">
+      <nChannels> 4 </nChannels>
+      <!-- Analog bandwidth in Hz. -->
+      <analogBandwidth> 350e6 </analogBandwidth>
+      <!-- Size of buffer memory in number of samples. -->
+      <bufferMemory> 32e6 </bufferMemory>
+      <!-- Vertical resolution in bits. -->
+      <verticalResolution> 8 </verticalResolution>
+    </digitizer>
+  </Models>
+
+  <Devices>
+    <digitizer id="1" type="1"> <!--  PicoScope A, 6403  -->
+      <serial> AY166/036 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="2" type="1"> <!--  PicoScope B, 6403  -->
+      <serial> AY166/022 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="3" type="2"> <!--  PicoScope C, 6402  -->
+      <serial> AY166/049 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="4" type="2"> <!--  PicoScope D, 6402  -->
+      <serial> AP222/128 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="5" type="2"> <!--  PicoScope E, 6402  -->
+      <serial> AP225/020 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="6" type="2"> <!--  PicoScope F, 6402  -->
+      <serial> AP490/015 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="7" type="2"> <!--  PicoScope G, 6402  -->
+      <serial> AP231/012 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="8" type="2"> <!--  PicoScope H, 6402  -->
+      <serial> AP490/040 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="9" type="2"> <!--  PicoScope I, 6402  -->
+      <serial> AP574/016 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="10" type="2"> <!--  PicoScope J, 6402  -->
+      <serial> AP574/007 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+    <digitizer id="11" type="1"> <!--  PicoScope K, 6403 (Oliver's)  -->
+      <serial> AY166/027 </serial>
+      <channelOffsets> 0.0 0.0 0.0 0.0 </channelOffsets>
+    </digitizer>
+  </Devices>
+
+</DigitizerModels>

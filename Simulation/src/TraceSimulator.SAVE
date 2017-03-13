@@ -1,0 +1,239 @@
+#include "TraceSimulator.h"
+#include <TRandom.h>
+#include <Shower.h>
+#include <Event.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <AugerUnits.h>
+#include <PhysicalConstants.h>
+#include <RandomGenerator.h>
+#include <Atmosphere.h>
+#include <vector>
+#include <iostream>
+#include <stdexcept>
+#include <cmath>
+#include <tinyxml.h>
+#include <tinyxmlCromeUtilities.h>
+#include <Configuration.h>
+#include <Math/GSLRndmEngines.h>
+
+
+using namespace std;
+using namespace utl;
+
+
+TraceSimulator::TraceSimulator():
+  fLDFmodel(eNone),
+  fThinning(1),
+  fMWyield(0),
+  fTau(0),
+  fNsample(1)
+{
+  const string configId("TraceSimulator");
+  const string& fileName =
+    Configuration::GetInstance().GetConfigurationFileName(configId);
+
+  fRandom = &(RandomGenerator::GetInstance().GetShowerRandom());
+
+  TiXmlDocument doc(fileName);
+  if ( doc.LoadFile() ) {
+
+    const TiXmlElement* topBranch = doc.FirstChildElement(configId);
+    if (!topBranch ) {
+      throw std::runtime_error(string("TraceSimulator::Init(): ")+
+                               string("could not find TraceSimulation in ")+
+                               fileName);
+    }
+
+    const TiXmlElement* showerBranch = topBranch->FirstChildElement("Shower");
+    if (!showerBranch )
+      throw std::runtime_error(string("TraceSimulator::Init(): ")+
+                               string("could not find Shower branch in ")+
+                               fileName);
+
+    fLDFmodel = (LDFType)GetDoubleValue(showerBranch->FirstChildElement("LDF"));
+    fThinning = GetDoubleValue(showerBranch->FirstChildElement("thinning"));
+    if(fLDFmodel==eNone) fThinning = 1;
+
+    const TiXmlElement* MWmodelBranch = topBranch->FirstChildElement("MWmodel");
+    if (!MWmodelBranch )
+      throw std::runtime_error(string("TraceSimulator::Init(): ")+
+                               string("could not find MWmodel branch in ")+
+                               fileName);
+
+    fMWyield =
+      GetDoubleValue(MWmodelBranch->FirstChildElement("MWyield"))*(1./Hz);
+    fTau = GetDoubleValue(MWmodelBranch->FirstChildElement("tau"))*s;
+    fNsample = GetUnsignedValue(MWmodelBranch->FirstChildElement("Nsample"));
+
+  }
+
+
+  fDetectorSetup = &(Detector::GetInstance().GetSetup());
+
+}
+
+
+TraceSimulator::TraceSimulator(const DetectorSetup* detSetup):
+  fLDFmodel(eGora),
+  fThinning(10), //300
+  fMWyield(1.17253e-18*(1/Hz)),
+  fTau(7e-9 * s),
+  fNsample(20),
+  fDetectorSetup(detSetup)
+{
+
+  cerr << " ---------------------------------------------------"  << endl;
+  cerr << "|                                                   |" << endl;
+  cerr << "|  WARNING: Using hardcoded simulation parameters!  |" << endl;
+  cerr << "|                                                   |" << endl;
+  cerr << " ---------------------------------------------------"  << endl;
+
+  fRandom = &(RandomGenerator::GetInstance().GetShowerRandom());
+  //fDetectorSetup = &(Detector::GetInstance().GetSetup());
+
+}
+
+
+void
+TraceSimulator::Run(Event& event)
+{
+
+  //cout << "------------------------- fLDFmodel -> " <<  fLDFmodel << endl;
+  Shower& shower = event.GetSimData().GetShower();
+
+  const double arrayHeight = fDetectorSetup->GetArray().GetHeight();
+
+  const vector<double>& depth = shower.GetDepth();
+  const vector<double>& electrons = shower.GetElectrons();
+  const vector<double>& energyDeposit = shower.GetEnergyDeposit();
+
+  const double zenith = shower.GetZenith();
+  const double azimuth = shower.GetAzimuth();
+  const double cosZenith = cos(zenith);
+
+  const TVector3& showerCore = shower.GetCore();
+  const TVector3& showerAxis = shower.GetAxis();
+
+  // prepare simulation traces
+  for (Event::AntennaDataIterator antennaData = event.AntennasBegin();
+       antennaData != event.AntennasEnd(); ++antennaData) {
+    for (AntennaData::ChannelDataIterator channelData = antennaData->ChannelsBegin();
+         channelData != antennaData->ChannelsEnd(); ++channelData) {
+      if (!(*channelData).HasSimulationTraces()) {
+        const size_t antennaId = antennaData->GetId();
+        const Antenna& antenna = fDetectorSetup->GetAntenna(antennaId);
+        const size_t channelId = channelData->GetId();
+        const Channel& channel = antenna.GetChannel(channelId);
+        channelData->MakeSimulationTraces(channel.GetTraceStartTime(),
+                                          channel.GetTraceBinWidth(),
+                                          channel.GetNTraceBins());
+      }
+    }
+  }
+
+  // holds decay times (see inner loop)
+  vector<double> decayTimes(fNsample);
+
+  // transformation from local to global CS
+  TRotation localToGlobal;
+  localToGlobal.RotateY(zenith);
+  localToGlobal.RotateZ(azimuth);
+
+  const Atmosphere& atmo = Atmosphere::GetInstance();
+  fRandom = &(RandomGenerator::GetInstance().GetShowerRandom());
+  TVector3 ldfPos;
+  
+  
+  for (int iDepth = 0; iDepth < (int) depth.size() - 1; iDepth++) {
+    const double depthStep = depth[iDepth + 1] - depth[iDepth];
+
+    if (iDepth%5==0) cout << " "<< iDepth << "/" << depth.size() << " --> depth = " << depth[iDepth] / (g/cm2) << " electrons = " << electrons[iDepth] << endl;
+    const double prevH = atmo.Height(depth[iDepth] - depthStep / 2., cosZenith);
+    const double nextH = atmo.Height(depth[iDepth] + depthStep / 2., cosZenith);
+    const double hstep = (prevH - nextH) * cosZenith;
+
+    const double nLDFpoints = fmin(fThinning, electrons[iDepth]);
+
+    // mean energy deposited per LDF sample
+    const double meanEdep = energyDeposit[iDepth] * depthStep / nLDFpoints;
+    const double ionizationEl =  energyDeposit[iDepth] * atmo.Density(atmo.Height(depth[iDepth], cosZenith)) / kIonizationPotential; 
+    
+    //if (depth[iDepth]/(g/cm2) >700 && depth[iDepth]/(g/cm2) <750) cout << "nelectrons = " << electrons[iDepth] << " density = " << atmo.Density(atmo.Height(depth[iDepth], cosZenith)) / (1./cm3)<< " ionizationEl["<< depth[iDepth]/(g/cm2) << "] = " << ionizationEl / meter << endl;
+
+    const double averageDepth = depth[iDepth] + depthStep / 2.;
+    const double rMoliereInBinCenter = atmo.MoliereRadius(averageDepth,
+                                                          cosZenith);
+    const double diskVolume = kPi * hstep * rMoliereInBinCenter * rMoliereInBinCenter;
+    const double totIonizationEl = ionizationEl*hstep / diskVolume;
+
+    for (unsigned int l = 0; l < nLDFpoints; l++) {
+      //cout << "      LDF n." << l+1 << endl;
+      const double currentDepth = depth[iDepth] - depthStep / 2.; 
+      const double currentHeight = atmo.Height(currentDepth, cosZenith);
+
+      const double currentDistToCore =
+        (currentHeight - arrayHeight) / cosZenith;
+      const double prevDistToCore =
+        (currentHeight + hstep / 2. - arrayHeight) / cosZenith;
+      const double nextDistToCore =
+        (currentHeight - hstep / 2. - arrayHeight) / cosZenith;
+
+      const TVector3 currentPos = showerCore + currentDistToCore * showerAxis;
+      //cout << " qui 1" << endl; 
+      //CalculateLDFPoint(ldfPos, rMoliereInBinCenter,
+      //                currentDepth, shower.GetXmax(),
+      //                fLDFmodel, *fRandom);
+      CalculateLDFPoint(ldfPos, rMoliereInBinCenter,
+                        currentDepth, shower.GetXmax(),
+                        fLDFmodel);
+
+      //cout << " qui 2" << endl; 
+
+      TVector3 prevPos(ldfPos.X(), ldfPos.Y(), ldfPos.Z() - hstep / 2.);
+      TVector3 nextPos(ldfPos.X(), ldfPos.Y(), ldfPos.Z() + hstep / 2.);
+      //cout << " qui 3" << endl; 
+
+
+      // transform to array coordinates
+      ldfPos.Transform(localToGlobal);
+      ldfPos += currentPos;
+      prevPos.Transform(localToGlobal);
+      prevPos += currentPos;
+      nextPos.Transform(localToGlobal);
+      nextPos += currentPos;
+
+      // check if outside atmosphere or below array
+      if (prevPos.Z() + arrayHeight > atmo.GetMaxHeight() || prevPos.Z() < 0. ||
+          nextPos.Z() + arrayHeight > atmo.GetMaxHeight() || nextPos.Z() < 0.)
+        continue;
+
+      // signal at emitting point in J / Hz
+      //const double mwSignal = meanEdep * fMWyield / (double) fNsample;
+      const double mwSignal = kPlanck * kSpeedOfLight * atmo.Density(currentHeight)*kAvogadro/kDryAirMolarMass *  totIonizationEl / (double) fNsample * kFreeFreeCR;
+      
+      const double prevEmissionTime = -prevDistToCore / kSpeedOfLight;
+      const double nextEmissionTime = -nextDistToCore / kSpeedOfLight;
+
+      // fill list of decay times to be added to {prev,next}EmissionTime
+      for (unsigned int i = 0; i < fNsample; i++) {
+	const double tau = atmo.GetLifeTime(currentHeight);
+      	const double rdm = ((double) rand() / (RAND_MAX));
+      	decayTimes[i] = -tau *log(1-rdm);
+        //decayTimes[i] = fRandom->Exponential(atmo.GetLifeTime(currentHeight));
+      	//cout << "          decaytime n." << i+1 << endl;
+      }
+
+      // loop over all active antennas
+      for (Event::AntennaDataIterator antennaData = event.AntennasBegin();
+           antennaData != event.AntennasEnd(); ++antennaData) {
+          antennaData->ObserveEmissions(mwSignal,
+                                        prevEmissionTime,
+                                        nextEmissionTime,
+                                        prevPos,
+                                        nextPos,
+                                        decayTimes);
+      } // for each antenna
+    } // for each ldf point
+  } // for each depth
+}

@@ -1,0 +1,283 @@
+#include "ChannelData.h"
+
+#include <algorithm>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+
+#include <MathConstants.h>
+#include <Atmosphere.h>
+#include <Channel.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+
+
+using namespace std;
+using namespace utl;
+
+ClassImp(ChannelData)
+
+
+ChannelData::ChannelData(size_t antennaId) :
+  fAntennaId(antennaId),
+  fChannelId(0),
+  fDataStartTime(0.),
+  fDataBinWidth(0.),
+  fSimulationStartTime(0.),
+  fSimulationBinWidth(0.)
+{
+
+}
+
+
+void ChannelData::SetId(size_t id)
+{
+  const Antenna* antenna;
+  try {
+    antenna =
+      &Detector::GetInstance().GetSetup().GetAntenna(fAntennaId);
+  } catch(...) {
+    stringstream err_msg_ss;
+    err_msg_ss << "ChannelData::SetId(): Unknown antenna id "
+               << fAntennaId << ".";
+    string err_msg = err_msg_ss.str();
+    throw runtime_error(err_msg);
+  }
+
+  // Check whether the channel id is known by requesting it
+  try {
+    antenna->GetChannel(id);
+  } catch(...) {
+    stringstream err_msg_ss;
+    err_msg_ss << "ChannelData::SetId(): Unknown channel id " << id << " ";
+    err_msg_ss << "for antenna " << fAntennaId << "." << endl;
+    string err_msg = err_msg_ss.str();
+    throw runtime_error(err_msg);
+  }
+
+  fChannelId = id;
+}
+
+
+void ChannelData::MakeDataTrace(double startTime,
+                                double binWidth,
+                                size_t nBins)
+{
+  fDataStartTime = startTime;
+  fDataBinWidth = binWidth;
+
+  fDataTrace.clear();
+  fDataTrace.resize(nBins, 0.);
+}
+
+
+void ChannelData::MakeSimulationTraces(double startTime,
+                                       double binWidth,
+                                       size_t nBins)
+{
+  fSimulationStartTime = startTime;
+  fSimulationBinWidth = binWidth;
+
+  fSimulatedFluxTrace.clear();
+  fSimulatedFluxTrace.resize(nBins, 0.);
+
+  fSimulatedPowerTrace.clear();
+  fSimulatedPowerTrace.resize(nBins, 0.);
+}
+
+
+void ChannelData::ObserveEmission(double energy,
+                                  double t1,
+                                  double t2,
+                                  const TVector3 r1, /* array cs */
+                                  const TVector3 r2) /* array cs */
+{
+  if (!HasSimulationTraces()) {
+    throw std::runtime_error("ChannelData::ObserveFlux(): "
+                             "Channel has no simulation traces.");
+  }
+
+  const Antenna& antenna =
+    Detector::GetInstance().GetSetup().GetAntenna(fAntennaId);
+  const Channel& channel = antenna.GetChannel(fChannelId);
+  const Atmosphere& atmosphere = Atmosphere::GetInstance();
+
+  const TVector3 origin = 0.5 * (r1 + r2);
+  const double effectiveArea = channel.GetEffectiveArea(origin);
+  if (effectiveArea <= 0.0) {
+    // The channel is not sensitive in the direction of the emitter
+    return;
+  }
+
+  const TVector3& channelPos = channel.GetGlobalPosition();
+  const double arrayHeight =
+    Detector::GetInstance().GetSetup().GetArray().GetHeight();
+
+  const double channelHeight = channelPos.Z() + arrayHeight;
+  const double prevTimeToChannel =
+    atmosphere.GetTimeOfFlight(r1.Z() + arrayHeight,
+                               channelHeight,
+                               (r1 - channelPos).CosTheta(),
+                               channel.GetCenterFrequency());
+
+  const double nextTimeToChannel =
+    atmosphere.GetTimeOfFlight(r2.Z() + arrayHeight,
+                               channelHeight,
+                               (r2 - channelPos).CosTheta(),
+                               channel.GetCenterFrequency());
+
+  t1 += prevTimeToChannel;
+  t2 += nextTimeToChannel;
+
+  if (t2 < t1) {
+    // Force t1 < t2
+    swap(t1, t2);
+  }
+
+
+
+  // Calculate flux at the detector in [W / m² / Hz]
+  const double distance2 = (origin - channelPos).Mag2();
+  const double totalFlux = energy / ((t2 - t1) * 4. * kPi * distance2);
+
+  //cout << " (t2 - t1) -> " << (t2 - t1)/ns << " ns" << endl; 
+  // Convert flux to received power using the effective area and bandwidth
+  const double bandwidth = channel.GetBandWidth();
+  const double receivedPower = totalFlux; //* effectiveArea * bandwidth;
+
+  // Calculate indices of the first and last bins covered by the signal
+  const int firstBin = (t1 - fSimulationStartTime) / fSimulationBinWidth;
+  const int lastBin = (t2 - fSimulationStartTime) / fSimulationBinWidth;
+
+  if (firstBin == lastBin) {
+    // Signal falls into one bin only
+    double fraction = (t2 - t1) / fSimulationBinWidth;
+    AddToSimulatedFluxTrace(firstBin, fraction * totalFlux);
+    AddToSimulatedPowerTrace(firstBin, fraction * receivedPower);
+  } else {
+    // Signal falls into two or more bins
+    // First bin
+    const double tFirstBinUpperEdge =
+      fSimulationStartTime + (firstBin + 1) * fSimulationBinWidth;
+    double fraction = (tFirstBinUpperEdge - t1) / fSimulationBinWidth;
+    AddToSimulatedFluxTrace(firstBin, fraction * totalFlux);
+    AddToSimulatedPowerTrace(firstBin, fraction * receivedPower);
+
+    // Middle bins (if any)
+    for (int i = firstBin + 1; i < lastBin; i++) {
+      AddToSimulatedFluxTrace(i, totalFlux);
+      AddToSimulatedPowerTrace(i, receivedPower);
+    }
+
+    // Last bin
+    const double tLastBinLowerEdge =
+      fSimulationStartTime + lastBin * fSimulationBinWidth;
+    fraction = (t2 - tLastBinLowerEdge) / fSimulationBinWidth;
+    AddToSimulatedFluxTrace(lastBin, fraction * totalFlux);
+    AddToSimulatedPowerTrace(lastBin, fraction * receivedPower);
+  }
+}
+
+
+
+void ChannelData::ObserveEmission(double energy,
+                                  double t1,
+                                  const TVector3 r1,
+				  double tau) /* array cs */
+{
+  if (!HasSimulationTraces()) {
+    throw std::runtime_error("ChannelData::ObserveFlux(): "
+                             "Channel has no simulation traces.");
+  }
+
+  const Antenna& antenna =
+    Detector::GetInstance().GetSetup().GetAntenna(fAntennaId);
+  const Channel& channel = antenna.GetChannel(fChannelId);
+  const Atmosphere& atmosphere = Atmosphere::GetInstance();
+
+  const double effectiveArea = 1;//channel.GetEffectiveArea(r1);
+  if (effectiveArea <= 0.0) {
+    // The channel is not sensitive in the direction of the emitter
+    return;
+  }
+
+  const TVector3& channelPos = channel.GetGlobalPosition();
+  const double arrayHeight =
+    Detector::GetInstance().GetSetup().GetArray().GetHeight();
+
+  const double channelHeight = channelPos.Z() + arrayHeight;
+  const double TimeToChannel =
+    atmosphere.GetTimeOfFlight(r1.Z() + arrayHeight,
+                               channelHeight,
+                               (r1 - channelPos).CosTheta(),
+                               channel.GetCenterFrequency());
+
+  t1 += TimeToChannel;
+  
+  // Calculate flux at the detector in [W / m² / Hz]
+  const double distance2 = (r1 - channelPos).Mag2();
+  const double totalFlux = energy / (4. * kPi * distance2);
+
+  // Convert flux to received power using the effective area and bandwidth
+  const double bandwidth = channel.GetBandWidth();
+  const double receivedPower = totalFlux;//* effectiveArea * bandwidth;
+ 
+  const int Nbins = channel.GetNTraceBins();
+  //const int firstBin = (t1 - fSimulationStartTime) / fSimulationBinWidth;
+  double firstTime = (t1 - fSimulationStartTime);
+  const int firstBin = firstTime / fSimulationBinWidth;
+  //cout << firstTime/ns << endl;
+  if(firstBin<=Nbins) {
+    //AddToSimulatedFluxTrace(firstBin, totalFlux / fSimulationBinWidth );
+    //AddToSimulatedPowerTrace(firstBin, receivedPower / fSimulationBinWidth ); 
+    //double tTime = 0;
+    const double precision = 0.999; 
+    double lastTime = -tau*log(1-precision);
+    const int lastBin = (t1 + lastTime - fSimulationStartTime) / fSimulationBinWidth;
+    //if (firstBin>lastBin) cout << "WARNING: firstBin - lastBin -> " << firstBin << " - " << lastBin << endl;
+    //    double step = fmin(tau/10., fSimulationBinWidth/10.);
+    //int Nsamples = fSimulationBinWidth/step;
+    //for(int iBin=firstBin; iBin<=Nbins; iBin++){
+    double tS = 0;
+    double tF =  (firstBin)*fSimulationBinWidth + fSimulationBinWidth - firstTime;
+
+    //cout << " tF = " << tF/ns << endl;
+    for(int iBin=firstBin; iBin<=lastBin; iBin++){
+      
+      if (iBin>firstBin) {
+	tS += tF-tS ;//fSimulationStartTime + (iBin-1)*fSimulationBinWidth - firstTime;
+	tF = tS + fSimulationBinWidth;
+      }
+      const double Integral = tau *( exp(-tS/tau) - exp(-tF/tau));
+      //cout << " fSimulationStartTime = " << fSimulationStartTime/ns << " tS = " << tS/ns << " tF = " << tF/ns << " Integral = "<< Integral << " tau = " << tau/ns << endl;
+      //if(tTime > 5.*tau*log(10)) break;
+      //if(step>fSimulationBinWidth) step = fSimulationBinWidth;
+      //double step = 0.1*ns;//fSimulationBinWidth/100.;
+      //cout << " Nsamples = " << Nsamples << " tau = " << tau/ns << " step = " << step/ns << " ns " <<  fSimulationBinWidth/ns << " ns" << endl;
+      //for (int iS=0; iS<Nsamples; iS++) {
+      //AddToSimulatedFluxTrace(iBin, totalFlux * exp (-tTime/tau) / step); //fSimulationBinWidth /(double)Nsamples );
+      //AddToSimulatedPowerTrace(iBin, receivedPower * exp (-tTime/tau) / step); //fSimulationBinWidth/(double)Nsamples );
+      //tTime += step;//fSimulationBinWidth;
+      AddToSimulatedFluxTrace(iBin, totalFlux*Integral / fSimulationBinWidth);
+      AddToSimulatedPowerTrace(iBin, receivedPower*Integral / fSimulationBinWidth);
+      //tTime += fSimulationBinWidth;
+      //}
+    }
+    
+  }
+  //else cout << "firstBin > Nbins -> " << firstBin << " > " << Nbins << " t1 - fSimulationStartTime = " << (t1 - fSimulationStartTime)/microsecond << endl;
+}
+
+
+void ChannelData::AddToSimulatedFluxTrace(int bin, double flux)
+{
+  if (bin >= 0 && bin < (int) fSimulatedFluxTrace.size())
+    fSimulatedFluxTrace[bin] += flux;
+}
+
+
+void ChannelData::AddToSimulatedPowerTrace(int bin, double power)
+{
+  if (bin >= 0 && bin < (int) fSimulatedPowerTrace.size())
+    fSimulatedPowerTrace[bin] += power;
+}

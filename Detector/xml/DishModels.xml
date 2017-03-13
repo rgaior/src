@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0"?>
+<DishModels>
+   <dish type="Prodelin335">
+      <diameter> 3.35 </diameter>
+      <!-- Additional, unused data -->
+      <!-- <focal> 1.187 </focal> --> <!-- from geometrical measurements -->
+   </dish>
+
+   <dish type="Gibertini150">
+      <diameter> 1.50 </diameter>
+   </dish>
+
+   <dish type="Kathrein090">
+      <diameter> 0.90 </diameter>
+   </dish>
+
+
+   <!-- Deprecated models -->
+   <dish type="protoCROME">
+      <diameter> 3.4 </diameter>
+      <!-- Additional, unused data -->
+      <!-- <focal> 1.187 </focal> --> <!-- from geometrical measurements -->
+   </dish>
+
+   <dish type="CROMEsetup1">
+      <diameter> 1.5 </diameter>
+   </dish>
+
+   <dish type="noANTENNA"> <!-- Not used channels -->
+      <diameter> 0. </diameter>
+   </dish>
+</DishModels>

@@ -1,0 +1,377 @@
+#include <cmath>
+#include <iostream>
+#include <stdlib.h>  
+
+#include "AugerUnits.h"
+#include "PhysicsFunctions.h"
+#include "PhysicalConstants.h"
+
+#include <Math/GSLRndmEngines.h>
+#include <TVector3.h>
+
+
+
+/*
+using namespace std;
+
+double Integrate(vector<double>& v, double a, double b) {
+  int taille = v.size();
+  double pas = (b-a) / taille;
+  double integral = 0.;
+  for(unsigned int i = 0 ; i < taille ; i++) integral+= v[i] * pas;
+
+  return integral;
+}
+*/
+
+
+
+namespace utl {
+
+
+/**
+     This function returns the fraction of electrons above energy
+     cutoff enCut at s = 1.
+
+     - extrapolation to other cutoffs with function
+     from Nerling et al, Proc 28th ICRC (figure 4)
+
+     Input: electron energy cutoff
+*/
+double
+ElectronsAboveCut(double enCut)
+{
+  const double maxMeVCut = 3*MeV; //in MeV  maximum extrapolation
+
+  if (enCut > maxMeVCut)
+    enCut = maxMeVCut;
+
+  return 1 - 0.045*enCut/MeV;
+}
+
+
+/**
+   This function returns the average energy deposit in eV
+   - based on CORSIKA parameterization at 1 MeV
+   see F. Nerling et al., Astropart. Phys. 24 (2006) 421-437.
+
+   Input: age and electron energy cutoff
+
+   Output: energy deposit per particle
+*/
+double
+EnergyDeposit(const double age, const double enCut)
+{
+  // parameters at 1 MeV
+  const double p[] = { 3.90883, 1.05301, 9.91717, 2.41715, 0.13180 };
+
+  // limit to reasonable ranges
+  const double scaleFactor = ElectronsAboveCut(enCut) / ElectronsAboveCut(1*MeV);
+
+  const double eDep = p[0]/pow(p[1] + age, p[2]) + p[3] + p[4]*age;
+
+  return eDep / scaleFactor * MeV/(g/cm2);
+}
+
+
+double
+GoraAParameter(const double age)
+{
+  return (((5.151*age - 28.925)*age + 60.056)*age - 56.718)*age + 22.331;
+}
+
+/// parameter b of D. Gora et al., Astropart. Phys. 24 (2006), 484
+double
+GoraBParameter(const double age)
+{
+  return (-1.039*age + 2.251)*age + 0.676;
+}
+
+
+  //double
+  //GoraFunction(double depth, double xmax, ROOT::Math::GSLRngMT& theRandom)
+double
+GoraFunction(double depth, double xmax)
+{
+  
+  //double rdm = theRandom();
+  double rdm = ((double) rand() / (RAND_MAX)) ;  
+  //std::cout << "ROOT: " << rdm << " rand: " << rdm2 << std::endl;
+  
+  double age = ShowerAge(depth, xmax);
+
+  // avoid div by zero
+  //if (rdm < std::numeric_limits<double>::min())
+  //rdm = std::numeric_limits<double>::min();
+
+  const double a = GoraAParameter(age);
+  const double b = GoraBParameter(age);
+
+  // r = F(rdm)^(-1)
+  return (pow(1-rdm, -1/b) - 1) / a;
+}
+
+
+// double
+// NKGFunction(double depth, const double fMax, ROOT::Math::GSLRngMT& theRandom)
+double
+NKGFunction(double depth, const double fMax)
+{
+  std::cout << "--> 1" << std::endl;
+  double age = ShowerAge(depth, fMax);
+  std::cout << "--> 2" << std::endl;
+  const double closeToZero = 1.e-20;
+  const double ageMax = 1.999;
+
+  static double lastFmax = -1;
+  static double xMaxArr[200];
+
+  std::cout << "--> 3" << std::endl; 
+  if (fMax != lastFmax) {
+    lastFmax = fMax;
+    double dX = 0.001;
+    for (int j = 0; j < 200; ++j) {
+      std::cout << "--> 3.1" << std::endl;
+      const double a = (0.5+j)/100;
+      const double b = 4.5 - 2*a;
+      double frac = 0;
+      double xxMax = closeToZero;
+      while (frac < fMax) {
+	xxMax += dX;
+	const double arg = 1/(1+1/xxMax);
+	frac = IncompleteBeta(a, b, arg);
+	std::cout << "frac = " << frac << " fMax = " << fMax << std::endl; 
+      }
+      xMaxArr[j] = xxMax;
+      // incrase dX
+      dX = xxMax/100;
+      std::cout << "--> 3.2" << std::endl;
+    }
+  }
+  std::cout << "--> 4" << std::endl;
+  // random generation
+  if (age >= ageMax)
+    age = ageMax;
+
+  const double xMin = closeToZero;
+  const int ageBin = int(age*100);
+  const double xMax = xMaxArr[ageBin];
+
+  double rdm = 1;
+  double Y = 0;
+  double x;
+  while (rdm > Y) {
+
+    if (age > 1) {
+
+ // get random number ~ (1.+x)^(s-4.5) between Xmin and Xmax
+
+ const double _g = age - 4.5;
+ const double _g1 = _g + 1;
+
+ //rdm = theRandom();
+ rdm = ((double) rand() / (RAND_MAX)) ;
+  
+ const double Fa = pow(xMin+1, _g1);
+ const double Fb = pow(xMax+1, _g1);
+ const double y = Fa + (Fb-Fa)*rdm;
+ x = pow(y, 1/_g1);
+
+ // hit or miss for additional x*(x)^(s-2)
+
+ x -= 1;
+ Y = pow(x, age-1);
+ const double Ymax = pow(xMax, age-1);
+ //rdm = Ymax * theRandom();
+ rdm = Ymax * ((double) rand() / (RAND_MAX)) ; 
+
+    } else {
+
+ // get random number ~ x*(x)^(s-2.) between Xmin and Xmax
+
+ const double _g = age - 1;
+ const double _g1 = _g + 1;
+
+ //rdm = theRandom();
+ rdm = ((double) rand() / (RAND_MAX));  
+
+ if (fabs(_g1) > closeToZero) {
+   const double Fa = pow(xMin, _g1);
+   const double Fb = pow(xMax, _g1);
+   const double y = Fa + (Fb-Fa)*rdm;
+   x = pow(y, 1/_g1);
+ } else {
+   const double lMin = log10(xMin);
+   const double lMax = log10(xMax);
+   x = pow(10, lMin + rdm*(lMax-lMin));
+ }
+
+ // hit or miss for additional (1+x)^(s-4.5)
+
+ Y = pow(1+x, age - 4.5);
+ //rdm = theRandom();
+ rdm = ((double) rand() / (RAND_MAX));
+  
+    }
+
+  }
+  std::cout << "--> 5" << std::endl;
+  return x;
+}
+
+
+double
+IncompleteBeta(const double a, const double b,
+ 	 const double x)
+{
+  double bt;
+
+  if (x < 0 || x > 1)
+    return -1;// ERROR("Bad x in routine incompleteBeta");
+
+  if (!x || x == 1)
+    bt = 0;
+  else // Factors in front of the continued fraction.
+    bt = exp(LogGamma(a + b) - LogGamma(a) - LogGamma(b) +
+             a*log(x) + b*log(1-x));
+
+  if (x < (a+1)/(a+b+2))
+    // Use continued fraction directly.
+    return bt * BetaCF(a, b, x) / a;
+  else
+    // Use continued fraction after making the symmetry transformation.
+    return 1 - bt * BetaCF(b, a, 1-x) / b;
+}
+
+
+double
+LogGamma(const double x)
+{
+  const double p[7] = {
+    1.000000000190015,
+    76.18009172947146,
+    -86.50532032941677,
+    24.01409824083091,
+    -1.231739572450155,
+    1.208650973866179e-3,
+    -5.395239384953e-6
+  };
+
+  const double sqrt2pi = 2.5066282746310005;
+
+  double series = p[0];
+  for (int i = 1; i < 7; ++i)
+    series += p[i]/(x+i);
+
+  const double xx = x + 5.5;
+  const double xxx = xx - log(xx) * (x + 0.5);
+
+  return log(sqrt2pi/x * series) - xxx;
+}
+
+
+/**
+   \brief BetaCF
+
+   Used by incompleteBeta: Evaluates continued fraction
+   for incomplete beta function by modified Lentz's method.
+   Taken from Numerical Recipes in C.
+
+*/
+double
+BetaCF(const double a, const double b, const double x)
+{
+  const int maxIt = 100;
+  const double eps = 3e-7;
+  const double fpMin = 1e-30;
+
+  const double qab = a + b;  //  These q's will be used in factors that occur
+  const double qap = a + 1;  //  in the coefficients (6.4.6).
+  const double qam = a - 1;
+  double c = 1; // First step of Lentz's method.
+  double d = 1 - qab*x/qap;
+  if (fabs(d) < fpMin)
+    d = fpMin;
+  d = 1/d;
+  double h = d;
+
+  int _m;
+  for (_m = 1; _m <= maxIt; ++_m) {
+    const int _m2 = 2*_m;
+    // One step (the even one) of the recurrence.
+    const double aa1 = _m * (b-_m) * x / ((qam+_m2) * (a+_m2));
+    d = 1 + aa1*d;
+    if (fabs(d) < fpMin)
+ d = fpMin;
+    c = 1 + aa1/c;
+    if (fabs(c) < fpMin)
+ c = fpMin;
+    d = 1/d;
+    h *= d*c;
+    // Next step of the recurrence (the odd one).
+    const double aa2 = -(a+_m) * (qab+_m) * x / ((a+_m2) * (qap+_m2));
+    d = 1 + aa2*d;
+    if (fabs(d) < fpMin)
+ d = fpMin;
+    c = 1 + aa2/c;
+    if (fabs(c) < fpMin)
+ c = fpMin;
+    d = 1/d;
+    const double del = d*c;
+    h *= del;
+    if (fabs(del - 1) < eps)
+ break; // Are we done?
+  }
+  if (_m > maxIt) {
+    return -1;
+    //cout << "ERROR!!!" << endl;
+  }
+  //ERROR("a or b too big, or MAXIT too small in betacf");
+
+  return h;
+}
+
+
+// void
+// CalculateLDFPoint(TVector3& position,
+//                   const double rMoliere, const double currDepth,
+//                   const double xmax, const LDFType ldfType,
+//                   ROOT::Math::GSLRngMT& theRandom)
+void
+CalculateLDFPoint(TVector3& position,
+                  const double rMoliere, const double currDepth,
+                  const double xmax, const LDFType ldfType)
+{
+  if ( ldfType == eNone )
+    position.SetXYZ(0.,0.,0.);
+  else {
+
+    // local LDF point ...
+    double r = 0.;
+    if ( ldfType == eNKG ) {
+      std::cout << " before Moliere" << std::endl;
+      //r = rMoliere*NKGFunction(currDepth, xmax, theRandom);
+      r = rMoliere*NKGFunction(currDepth, xmax);
+      std::cout << " after Moliere" << std::endl;
+    }
+    else if ( ldfType == eGora )
+      r = rMoliere*GoraFunction(currDepth, xmax);
+    //r = rMoliere*GoraFunction(currDepth, xmax, theRandom);
+
+    //const double phi = 2. * kPi * theRandom();
+    const double phi = 2. * kPi * ((double) rand() / (RAND_MAX));
+
+    position.SetXYZ(r*cos(phi), r*sin(phi), 0.);
+
+  }
+
+  return;
+}
+
+double
+ShowerAge(double depth, double xmax)
+{
+  return 3.0 * depth / (depth + 2.0*xmax);
+}
+
+}

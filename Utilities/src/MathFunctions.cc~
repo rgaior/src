@@ -1,0 +1,207 @@
+#include <stdexcept>
+#include "MathFunctions.h"
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/io.hpp>
+
+
+using namespace std;
+
+
+/*double Integrate(vector<double>& v, double a, double b) {
+  int taille = v.size();
+  double pas = (b-a) / taille;
+  double integral = 0.;
+  for(unsigned int i = 0 ; i < taille ; i++) integral+= v[i] * pas;
+
+  return integral;
+}*/
+
+
+namespace utl {
+
+double Integrate(vector<double>& v, double a, double b) {
+  int taille = v.size();
+  double pas = (b-a) / taille;
+  double integral = 0.;
+  for(unsigned int i = 0 ; i < taille ; i++) integral+= v[i] * pas;
+
+  return integral;
+
+}
+
+
+double LogIntegrate (double (*f)(double), double a, double b, int n)
+{
+  int i;
+  double pas, r, res;
+  a=log(a); b=log(b);
+
+  pas = (b - a) / 2 / n;
+  res = ( exp(a)*(*f)(exp(a))+exp(b)*(*f)(exp(b)) )/2.;
+  for (i = 1; i < 2 * n; i++) {
+    r = exp(a+i*pas)*(*f)(exp(a+i*pas));
+    if (i % 2)  res += r + r;
+    else res += r;
+  }
+
+  return (res * pas * 2 / 3);
+}
+
+
+
+
+/*
+  Returns the edges of nBins equidistant bins between xLow and xHigh.
+ */
+vector<double> GenerateBinEdges(const double& xLow,
+                                     const double& xHigh,
+                                     const size_t& nBins)
+{
+  if (nBins == 0) {
+    throw runtime_error("MathFunctions::GenerateBinEdges(): "
+                             "Need at least one bin.");
+  }
+
+  if (xHigh <= xLow) {
+    throw runtime_error("MathFunctions::GenerateBinEdges(): "
+                             "xHigh must be larger than xLow.");
+  }
+
+  const double dx = (xHigh - xLow) / nBins;
+  vector<double> edges(nBins + 1);
+  edges[0] = xLow;
+  edges[nBins] = xHigh;
+  for (size_t i = 1; i < nBins; i++) {
+    edges[i] = xLow + i * dx;
+  }
+
+  return edges;
+}
+
+
+/*
+  Returns the centers of nBins equidistant bins between xLow and xHigh.
+ */
+vector<double> GenerateBinCenters(const double& xLow,
+                                       const double& xHigh,
+                                       const size_t& nBins)
+{
+  if (nBins == 0) {
+    throw runtime_error("MathFunctions::GenerateBinCenters(): "
+                             "Need at least one bin.");
+  }
+
+  if (xHigh <= xLow) {
+    throw runtime_error("MathFunctions::GenerateBinCenters(): "
+                             "xHigh must be larger than xLow.");
+  }
+
+  const double dx = (xHigh - xLow) / nBins;
+  vector<double> centers(nBins);
+  for (size_t i = 0; i < nBins; i++) {
+    centers[i] = xLow + (i + 0.5) * dx;
+  }
+
+  return centers;
+}
+
+
+/*
+  Returns vector of intersection points between a ray with a given point and
+  axis and a cone with given origin, axis and opening angle. Based on:
+  http://www.geometrictools.com/Documentation/IntersectionLineCone.pdf
+ */
+vector<TVector3> RayConeIntersection(const TVector3& ray_point,
+                             const TVector3& ray_axis,
+                             const TVector3& cone_origin,
+                             const TVector3& cone_axis,
+                             const double cone_angle)
+{
+
+  // convert root vectors to boost vectors in order to use boost matrix
+  // operations
+  boost::numeric::ublas::vector<double> ray_a(3);
+  ray_a(0) = ray_axis.X();
+  ray_a(1) = ray_axis.Y();
+  ray_a(2) = ray_axis.Z();
+
+  boost::numeric::ublas::vector<double> cone_a(3);
+  cone_a(0) = cone_axis.X();
+  cone_a(1) = cone_axis.Y();
+  cone_a(2) = cone_axis.Z();
+
+  boost::numeric::ublas::vector<double> delta(3);
+  delta(0) = (ray_point-cone_origin).X();
+  delta(1) = (ray_point-cone_origin).Y();
+  delta(2) = (ray_point-cone_origin).Z();
+
+  boost::numeric::ublas::matrix<double> m(3,3);
+  for (unsigned i = 0; i < m.size1(); ++i) {
+    for (unsigned j = 0; j < m.size2(); ++j) {
+      if(i == j)
+        m(i,j) = cos(cone_angle)*cos(cone_angle);
+      else
+        m(i,j) = 0;
+    }
+  }
+
+  boost::numeric::ublas::matrix<double> M(3,3);
+  M = boost::numeric::ublas::outer_prod(cone_a,cone_a) - m;
+
+  // coefficients of quadratic equation
+  double c2 = boost::numeric::ublas::inner_prod(ray_a,boost::numeric::ublas::prod(M,ray_a));
+  double c1 = boost::numeric::ublas::inner_prod(ray_a,boost::numeric::ublas::prod(M,delta));
+  double c0 = boost::numeric::ublas::inner_prod(delta,boost::numeric::ublas::prod(M,delta));
+
+  vector<TVector3> intersection;
+  double t1, t2;
+  TVector3 x1, x2;
+  double d = c1*c1-c0*c2;
+
+  // there are no solutions if d is negative
+  if(d > 0 && c2 != 0) {
+    // two solutions of quadratic equation
+    t1 = (-c1 + sqrt(d))/c2;
+    x1 = ray_point + t1*ray_axis;
+    t2 = (-c1 - sqrt(d))/c2;
+    x2 = ray_point + t2*ray_axis;
+    // only consider cone in positive direction of cone axis
+    if(cone_axis*(x1-cone_origin) >= 0)
+      intersection.push_back(x1);
+    if(cone_axis*(x2-cone_origin) >= 0)
+      intersection.push_back(x2);
+  }
+
+  return intersection;
+}
+
+
+double kthElement(vector<double> set, int k)
+{
+  sort(set.begin(),set.end());
+  return set[k];
+}
+
+
+double GetMedian(vector<double> set)
+{
+  int n = set.size();
+  int k = (((n)&1)?((n)/2):(((n)/2)-1));
+
+  if(n%2 != 0)
+    return kthElement(set,k);
+  else
+    return (kthElement(set,k+1) + kthElement(set,k))/2.;
+}
+
+
+
+
+
+
+
+
+
+
+} //namespace utl
+

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ChannelMap>
+  <channel>
+    <signalSource type="antenna">
+      <antenna id="1" channel="1" />
+      <receiver id="1" />
+      <electronicsChain id="1" />
+    </signalSource>
+
+    <digitizer id="PicoScope A">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+
+  <channel>
+    <signalSource type="kgStation">
+      <kgStation id="19" />
+    </signalSource>
+
+    <digitizer id="PicoScope A">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+</ChannelMap>

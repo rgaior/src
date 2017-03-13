@@ -1,0 +1,520 @@
+/*#include <iostream>
+#include <string>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+
+
+#include <boost/foreach.hpp>
+#include <boost/assert.hpp>
+
+#include <TFile.h>
+#include <TTree.h>
+#include <TBranch.h>
+
+#include <Event.h>
+#include <EventFile.h>
+#include <Configuration.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <KascadeEnergyConverter.h>
+#include <TimeStamp.h>
+#include <AugerUnits.h>
+#include <MathConstants.h>
+#include <PhysicalConstants.h>
+#include <ChannelMap.h>
+#include <Shower.h>
+#include <TraceSimulator.h>
+#include <GHShowerGenerator.h>
+#include <GHShowerParameterization.h>
+#include <AugerUnits.h>
+*/
+
+#include <boost/foreach.hpp>
+
+#include <TRandom3.h>
+
+
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+
+
+
+
+#include <GHShowerParameterization.h>
+#include <Configuration.h>
+#include <GHShowerGenerator.h>
+#include <TraceSimulator.h>
+#include <BackgroundSimulator.h>
+#include <ElectronicsSimulator.h>
+#include <KGSimulator.h>
+#include <Event.h>
+#include <EventFile.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <TimedClass.h>
+#include <AugerUnits.h>
+#include <Atmosphere.h>
+#include <PhysicalConstants.h>
+
+
+using namespace std;
+using namespace utl;
+
+int main(int argc, char** argv)
+{
+  if (argc < 2) {
+    cerr << "Usage: " << argv[0] << " Config.xml RawData.root [...]" << endl;
+    return 1;
+  }
+
+  // Parse the configuration file
+  Configuration& config = Configuration::GetInstance();
+  config.Init(string(argv[1]));
+
+  // Create a detector setup based on the configuration
+  Detector::GetInstance().Init();
+  const DetectorSetup& detectorSetup = Detector::GetInstance().GetSetup();
+  DetectorSetup detector;
+
+  TraceSimulator tracesimulator;
+
+  //output files
+  EventFile eventFile("converted.root", EventFile::eWrite);
+  const int nFiles = argc -2;
+  vector<string> datFilenames; ifstream datfiles[nFiles];
+  //loop on events(1 file = 1 event) 
+  for ( int i = 0; i < nFiles; ++i )  datFilenames.push_back(string(argv[2+i]));
+  for ( int i = 0; i < nFiles; ++i ) {
+    int countline = 0;
+    double E,x,y,theta,phi;long int gps; char c;
+    ostringstream filename;
+    filename<<string(argv[2+i]);
+    datfiles[i].open(filename.str().c_str());
+    if (datfiles[i].is_open()) {
+      Event event;
+      Shower& shower = event.GetSimData().GetShower();
+      while(datfiles[i].get(c)) {
+        if (countline==0) datfiles[i]>>E>>x>>y>>theta>>phi>>gps;
+        countline++;
+      }
+      //shower
+      shower.SetEnergy(E); 
+      //shower.SetEnergyError();
+      //core
+      TVector3 core; core.SetXYZ(x,y,0);
+      shower.SetCore(core);
+      //shower.SetCoreError();
+      //axis
+      TVector3 axis(1); axis.SetTheta(theta); axis.SetPhi(phi);
+      shower.SetAxis(axis);
+      //shower.SetAxisError(theta,phi);
+      event.GetArrayData().SetShower(shower);
+       // Create the simulation chain
+      GHShowerParameterization ghParameters(5600);
+      event.GetSimData().GetShower() = event.GetArrayData().GetShower();
+      //Shower& shower = event.GetSimData().GetShower();
+      ghParameters.FillShower(shower, shower.GetEnergy(), 1.*m, shower.GetCosZenith(), true, detector);
+      TraceSimulator traceSimulator;
+      // Run the simulation
+      cout << "Running simulation... " << flush;
+      traceSimulator.Run(event);
+      cout << "done." << endl;
+ 
+
+
+      eventFile.SetEventBuffer(&event);
+      //event
+      string ID = datFilenames[i].substr(38,12); istringstream buf(ID);
+      long int eventId ; buf >> eventId;
+      event.SetEventId(eventId);
+      event.SetGPSSecond(gps);
+      cout << "Event ID " << eventId<<endl;
+      eventFile.WriteEvent();
+      
+    }
+    else cout << "could not open file!"<<endl;
+    datfiles[i].close();
+  }
+  cout << "Writing detector setup.." << endl;
+  eventFile.WriteDetectorSetup(detectorSetup);
+
+  /*// Open all input files and the contained trees
+  vector<int> nEvents;
+  vector<int> digitizers;
+  vector<TFile*> inputFiles;
+  vector<TTree*> inputTrees;
+  BOOST_FOREACH(string inputFilename, inputFilenames) {
+    // TODO Use some kind of auto_ptr here
+    TFile* inputFile = TFile::Open(inputFilename.c_str(), "READ");
+    if (!inputFile) {
+      cerr << "Error opening file " << inputFilename << "." << endl;
+      return 1;
+    }
+
+    TTree* inputTree = (TTree*) inputFile->Get("MWg");
+    if (!inputTree) {
+      cerr << "Error reading tree from " << inputFilename << "." << endl;
+      return 1;
+    }
+
+    nEvents.push_back(inputTree->GetEntries());
+    inputFiles.push_back(inputFile);
+    inputTrees.push_back(inputTree);
+    digitizers.push_back(ParseDigitizerId(inputFilename));
+  }
+
+  // Create an event buffer and the output file
+  EventFile eventFile("converted.root", EventFile::eWrite);
+
+  // adcData contains a buffer for each trace in each inputTree.
+  // It is indexed by input tree id and channel id,
+  //   adcData[treeId][channelId].
+  vector< vector< vector<double> > > adcData;
+  vector< vector< double > > timeData;
+  BOOST_FOREACH(TTree* inputTree, inputTrees) {
+    // TODO Read the number of channels from each input tree
+    const int nChannels = 4;
+
+    // Disable reading of all branches
+    inputTree->SetBranchStatus("*", kFALSE);
+
+    // Read the number of samples per channel
+    int nSamples = 0;
+    inputTree->SetBranchStatus("Np", kTRUE);
+    inputTree->SetBranchAddress("Np", &nSamples);
+    inputTree->GetEntry(0);
+    inputTree->SetBranchAddress("Np", 0);
+
+    // Read the time array common to all events in this tree
+    vector<double> treeTimeData(nSamples);
+    inputTree->SetBranchStatus("time", kTRUE);
+    inputTree->SetBranchAddress("time", &(treeTimeData[0]));
+    inputTree->GetEntry(0);
+    inputTree->SetBranchAddress("time", 0);
+    timeData.push_back(treeTimeData);
+
+    // Enable reading of all branches
+    inputTree->SetBranchStatus("*", kTRUE);
+
+    // Create a buffer for each channel
+    vector< vector<double> > treeADCData(nChannels);
+    for (int channelId = 0; channelId < nChannels; ++channelId) {
+      treeADCData[channelId] = vector<double>(nSamples);
+    }
+
+    adcData.push_back(treeADCData);
+  }
+
+  // Assign the buffers
+  for (size_t treeId = 0; treeId < inputTrees.size(); ++treeId) {
+    for (size_t channelId = 0; channelId < adcData[treeId].size(); ++channelId) {
+      stringstream channelName;
+      channelName << "ch" << (channelId + 1);
+      inputTrees[treeId]->SetBranchAddress(channelName.str().c_str(),
+                                           &adcData[treeId][channelId][0]);
+    }
+  }
+
+  // Create a map linking each available event to the appropriate trees
+  // The GPS timestamps (JD1 + JD2 * 1e-9) are used as keys. The values
+  // are vectors of treeId, eventId tuples.
+  map<double, vector< pair<size_t, int> > > eventMap;
+  for (size_t treeId = 0; treeId < inputTrees.size(); ++treeId) {
+    TTree* inputTree = inputTrees[treeId];
+
+    // Enable reading of timestamp branches only
+    inputTree->SetBranchStatus("*", kFALSE);
+    inputTree->SetBranchStatus("jd1", kTRUE);
+    inputTree->SetBranchStatus("jd2", kTRUE);
+
+    // Create buffers for event timestamps and assign them
+    int jd1 = 0;
+    int jd2 = 0;
+    inputTree->SetBranchAddress("jd1", &jd1);
+    inputTree->SetBranchAddress("jd2", &jd2);
+
+    // Loop over all events and add them to the eventMap
+    double eventTimestamp = 0.0;
+    pair<size_t, int> eventLocation(treeId, -1);
+    for (int eventId = 0; eventId < nEvents[treeId]; ++eventId) {
+      inputTree->GetEntry(eventId);
+
+      eventTimestamp = jd1 + jd2 * 1.0e-9;
+      eventLocation.second = eventId;
+
+      if (eventMap.count(eventTimestamp) == 0) {
+        // Create a new entry in the map
+        eventMap[eventTimestamp] = vector< pair<size_t, int> >();
+      }
+      // Add the location of this event to the map
+      eventMap[eventTimestamp].push_back(pair<size_t, int>(treeId, eventId));
+    }
+
+    // Reset buffers and enable reading of all branches again
+    inputTree->SetBranchAddress("jd1", 0);
+    inputTree->SetBranchAddress("jd2", 0);
+    inputTree->SetBranchStatus("*", kTRUE);
+  }
+
+  // Create buffers for each branch that we want to read and assign them
+  // Note: In principle it's not a good idea to use the same buffers
+  // for different trees. However, the trees contain the same metadata
+  // for each event.
+  const size_t nGrandeStations = 37;
+  int eventId;
+  int eventYear, eventMonth, eventDay, eventHour, eventMinute, eventSecond;
+  int eventNanosecond;
+  int yearg, monthg, dayg, hourg, minuteg, secondg, nanosecondg, Gt;
+  int hit7, fanka, trgg, idgr, irng, iact, itrg, idmx;
+  double Xcg, Ycg, Azg, Zeg, showerSize, muonSize, age;
+  double energy;
+  vector<double> grat1(nGrandeStations), gred(nGrandeStations);
+
+  BOOST_FOREACH(TTree* inputTree, inputTrees) {
+    // Event id (in this tree)
+    inputTree->SetBranchAddress("event", &eventId);
+    // GPS timestamp
+    inputTree->SetBranchAddress("year", &eventYear);
+    inputTree->SetBranchAddress("month", &eventMonth);
+    inputTree->SetBranchAddress("day", &eventDay);
+    inputTree->SetBranchAddress("hour", &eventHour);
+    inputTree->SetBranchAddress("minute", &eventMinute);
+    inputTree->SetBranchAddress("second", &eventSecond);
+    inputTree->SetBranchAddress("nanosec", &eventNanosecond);
+    // Grande timestamp
+    inputTree->SetBranchAddress("yearg", &yearg);
+    inputTree->SetBranchAddress("monthg", &monthg);
+    inputTree->SetBranchAddress("dayg", &dayg);
+    inputTree->SetBranchAddress("hourg", &hourg);
+    inputTree->SetBranchAddress("minuteg", &minuteg);
+    inputTree->SetBranchAddress("secondg", &secondg);
+    inputTree->SetBranchAddress("nanosecg", &nanosecondg);
+    inputTree->SetBranchAddress("Gt", &Gt);
+    // Grande trigger flags, DAQ flags and ids
+    inputTree->SetBranchAddress("Hit7", &hit7);
+    inputTree->SetBranchAddress("Fanka", &fanka);
+    inputTree->SetBranchAddress("Trgg", &trgg);
+    inputTree->SetBranchAddress("Idgr", &idgr);
+    inputTree->SetBranchAddress("Irng", &irng);
+    inputTree->SetBranchAddress("Iact", &iact);
+    inputTree->SetBranchAddress("Itrg", &itrg);
+    inputTree->SetBranchAddress("Idmx", &idmx);
+    // Reconstruction parameters (energy is calculated from these below)
+    inputTree->SetBranchAddress("Xcg", &Xcg);
+    inputTree->SetBranchAddress("Ycg", &Ycg);
+    inputTree->SetBranchAddress("Azg", &Azg);
+    inputTree->SetBranchAddress("Zeg", &Zeg);
+    inputTree->SetBranchAddress("Sizeg", &showerSize);
+    inputTree->SetBranchAddress("Sizmg", &muonSize);
+    inputTree->SetBranchAddress("Ageg", &age);
+    // Station specific information
+    inputTree->SetBranchAddress("Gred", &gred[0]);
+    inputTree->SetBranchAddress("Grat1", &grat1[0]);
+    // Energy with proper KG reconstruction and cuts
+    #warning: Energy copied from an input file because level 2 parameters are not included in input files (!!)
+    inputTree->SetBranchAddress("Energy",&energy);
+  }
+
+  // Build an mwOffline event from each event in the map
+  pair<double, vector< pair<size_t, int> > > mapEntry;
+  BOOST_FOREACH(mapEntry, eventMap) {
+    // Create a new mwOffline event
+    Event event;
+    eventFile.SetEventBuffer(&event);
+
+    // Read the event metadata from the first tree that has this event
+    TTree* metadataTree = inputTrees[mapEntry.second[0].first];
+    metadataTree->GetEntry(mapEntry.second[0].second);
+
+    event.SetEventId(eventId);
+    cout << "  Processing event " << eventId << ".. ";
+
+    // Set default array
+    ArrayData& array = event.GetArrayData();
+    array.SetType(ArrayData::eKASCADEGrande);
+    // Set timestamp from KG reconstruction
+    TimeStamp arrayTimestamp(yearg, monthg, dayg, hourg, minuteg,
+                             secondg, nanosecondg);
+    array.SetGPSSecond(arrayTimestamp.GetGPSSecond());
+    array.SetGPSNanoSecond(arrayTimestamp.GetGPSNanoSecond());
+    // Set array parameters
+    array.SetTriggerFlag1(hit7);
+    array.SetTriggerFlag2(fanka);
+    array.SetTriggerFlag3(itrg);
+    array.SetTriggerFlag4(trgg);
+    array.SetDaqFlag1(iact);
+    array.SetEventId(idgr);
+    array.SetRunId(irng);
+    // Set timestamp from GPS clock
+    TimeStamp timestamp(eventYear, eventMonth, eventDay,
+                        eventHour, eventMinute, eventSecond, eventNanosecond);
+    event.SetGPSSecond(timestamp.GetGPSSecond());
+    event.SetGPSNanoSecond(timestamp.GetGPSNanoSecond());
+    // Set shower parameters
+    Shower& shower = event.GetArrayData().GetShower();
+    shower.SetCore(TVector3(Xcg, Ycg, 0.0));
+    shower.SetAge(age);
+    shower.SetElectronSize(showerSize);
+    shower.SetMuonSize(muonSize);
+    // Convert shower coordinates to CROME convention
+    const double azimuthGlobal = 90. * degree - Azg; // East = 0°, ccw
+    const double azimuthLocal = azimuthGlobal - detectorSetup.GetArray().GetPhi();
+    TVector3 axis(0., 0., 1.);
+    axis.SetTheta(Zeg);
+    axis.SetPhi(azimuthLocal);
+    shower.SetAxis(axis);
+    // Add station data
+    for ( int stationId = 1; stationId <= (int) nGrandeStations; stationId++ ) {
+      StationData stationData;
+
+      stationData.SetId(stationId);
+
+      // Set energy deposit only if it's valid
+      if (gred[stationId - 1] > 0.0) {
+        stationData.SetEnergyDeposit(gred[stationId - 1] * MeV);
+      }
+
+      // Set trigger time only if it's valid
+      if (grat1[stationId - 1] != -88888.0) {
+        stationData.SetTriggerTime(grat1[stationId - 1] * ns);
+      }
+
+      array.AddStationData(stationData);
+    }
+
+*/
+    #warning: Level 2 parameters (needed for reconstruction and quality cuts) are missing in input files (!!)
+/*
+    // Reconstruct the energy of the primary
+    double energy;
+    // The standard cuts for KG energy spectrum (Donghwa's cuts)
+    if ( ( Zeg2 < (40.0 * degree / radian) )
+         && Xcg2>-440.0 && Xcg2<-50.0 && Ycg2>-550.0 && Ycg2<-30.0
+         && age2>-0.385 && age2<1.485 && hit7>0 && idmx>0
+         && muonSize2>1111 && showerSize2>11111
+         && fanka<4 && ( log10(Nctot2/8.5)>((2.9*log10(showerSize2)-8.4)/4.2) )
+         && nflg>0 && ndtg>11 && iact&1 
+    ) {
+
+        energy = energyConverter.CalculateEnergy(showerSize2, muonSize2,
+                                                          Xcg2, Ycg2, Zeg2, Azg2);
+        cout << energy << endl;
+    }
+    else energy= 0.0;
+*/
+  /*  shower.SetEnergy(energy);
+
+    // Apply a first energy cut: require a valid energy reconstruction
+    if (event.GetArrayData().GetShower().GetEnergy() <= 1.0e16) {
+      cout << "skipping due to invalid energy reconstruction.." << endl;
+      continue;
+    }
+
+    // Loop over each channel in each tree to copy the ADC samples
+    cout << "looks good. Copying traces.." << endl;
+
+    pair<size_t, int> eventLocation;
+    BOOST_FOREACH(eventLocation, mapEntry.second) {
+      size_t treeId = eventLocation.first;
+      TTree* inputTree = inputTrees[treeId];
+      int thisEventId = eventLocation.second;
+
+      unsigned int digitizerId = digitizers[treeId];
+
+      if (inputTree != metadataTree) {  // Skip reading the metadata tree again
+        inputTree->GetEntry(thisEventId);
+      }
+
+      for (size_t channelId = 0; channelId < adcData[treeId].size(); ++channelId) {
+        eSignalSourceType source = channelMap.GetSignalSourceType(digitizerId,
+                                                                  channelId + 1);
+        switch(source) {
+        case eAntenna: {
+          // ADC channel is connected to an antenna
+          pair<unsigned int, unsigned int> antennaChannelLocation =
+            channelMap.GetAntennaChannelId(digitizerId, channelId + 1);
+          unsigned int antennaId = antennaChannelLocation.first;
+          unsigned int antennaChannelId = antennaChannelLocation.second;
+
+          if (!event.HasAntennaData(antennaId)) {
+            event.MakeAntennaData(antennaId);
+          }
+          AntennaData& antennaData = event.GetAntennaData(antennaId);
+
+          if (antennaData.HasChannelData(antennaChannelId)) {
+            // TODO More elaborate error message
+            throw runtime_error("Tried to fill a channel twice.");
+          }
+          antennaData.MakeChannelData(antennaChannelId);
+          ChannelData& channelData =
+            antennaData.GetChannelData(antennaChannelId);
+
+          // Copy trace and set starting time
+          vector<double>& destTrace = channelData.GetDataTrace();
+          destTrace = adcData[treeId][channelId];
+          for (size_t i = 0; i < destTrace.size(); ++i) {
+            // TODO The unit of the input trace is hardcoded here.
+            //      Take this from an XML.
+            destTrace[i] *= milli * volt;
+          }
+          channelData.SetDataStartTime(timeData[treeId][0] * second);
+
+          break;
+        }
+
+        case eKGStation: {
+          // ADC channel is connected to a KASCADE Grande station
+          vector<double>& time = timeData[treeId];
+          vector<double>& signal = adcData[treeId][channelId];
+          const unsigned int stationId = channelMap.GetStationId(digitizerId,
+                                                                 channelId + 1);
+
+          // Set correct units
+          for (size_t i = 0; i < signal.size(); ++i) {
+            // TODO The unit of the input trace is hardcoded here.
+            //      Take this from an XML.
+            signal[i] *= milli * volt;
+          }
+
+          // Get start time and bin width
+          const double t0 = time[0];
+          const double dt = time[1] - time[0];
+
+          // Update station data
+          StationData& stationData = array.GetStationData(stationId);
+          stationData.SetSignal(signal);
+          stationData.SetSignalStartTime(t0 * second);
+          stationData.SetSignalBinWidth(dt * second);
+
+          break;
+        }
+
+        default:
+          // TODO More elaborate error message
+          throw runtime_error("Unknown signal source type.");
+        }
+      }
+    }
+
+    array.CalculateCorrectedTriggerTimes();
+
+    // Finally, write the event to disk
+    eventFile.WriteEvent();
+  }
+
+  cout << "Writing detector setup.." << endl;
+  eventFile.WriteDetectorSetup(detectorSetup);
+
+  cout << "Closing file.." << endl;
+  eventFile.Close();
+*/
+  return 0;
+}

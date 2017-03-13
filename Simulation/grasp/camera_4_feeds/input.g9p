@@ -1,0 +1,9 @@
+[Comment]
+Project comment
+[TOR file]
+input.tor
+[Auxiliary TOR files]
+[TCI file]
+input.tci
+[Default units]
+GHz m S/m 2

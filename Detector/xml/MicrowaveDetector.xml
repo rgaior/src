@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<MicrowaveDetector>
+
+  <array type="KASCADEGrande"/>
+
+  <antenna id="1">
+     <dish type="protoCROME"/>
+     <elevation> 90. </elevation>
+     <azimuth> 0. </azimuth>
+     <cameraAzimuth> 0. </cameraAzimuth>
+     <!-- 
+          Center of 335 cm dish measured with GPS.
+      -->
+     <x> -209.43 </x>
+     <y> -234.72 </y>
+     <z>    0.2 </z>
+     <channel id="1" type="protoCROME">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 86.9 </elevation>
+       <azimuth> 121.0 </azimuth>
+       <x> 0. </x>
+       <y> 0.064 </y>
+       <z> 0. </z>
+     </channel>
+     <channel id="2" type="protoCROME">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 86.9 </elevation>
+       <azimuth> 31.0 </azimuth>
+       <x> -0.64 </x>
+       <y> 0. </y>
+       <z> 0. </z>
+     </channel>
+     <channel id="3" type="protoCROME">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 86.9 </elevation>
+       <azimuth> 301.0 </azimuth>
+       <x> 0. </x>
+       <y> -0.0640 </y>
+       <z> 0. </z>
+     </channel>
+     <channel id="4" type="protoCROME">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 86.9 </elevation>
+       <azimuth>   211.0 </azimuth>
+       <x> 0.064  </x>
+       <y> 0. </y>
+       <z> 0. </z>
+     </channel>
+  </antenna>
+</MicrowaveDetector>

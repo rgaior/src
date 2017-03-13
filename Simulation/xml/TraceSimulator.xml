@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+
+<TraceSimulator>
+
+  <Shower>
+
+    <LDF> 2 </LDF> <!-- 0 shower is a line; 1 NKG; 2 Gora-->
+    <thinning> 2000 </thinning> <!-- Number of LDF samples-->
+
+  </Shower>
+
+  <MWmodel>
+
+    <!-- [1/Hz] ( calculated from Gorham paper) -->
+    <MWyield>  1.17253e-18 </MWyield> 
+    <!-- signal decay time (Gorham paper) -->
+    <tau> 7e-9 </tau> 
+    <Nsample> 5 </Nsample> 
+
+  </MWmodel>
+
+</TraceSimulator>

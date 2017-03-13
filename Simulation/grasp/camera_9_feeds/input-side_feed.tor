@@ -1,0 +1,82 @@
+Paraboloid  paraboloid
+(
+  focal_length : 1190.0  mm
+)
+ 
+Rim  elliptical_rim
+(
+  half_axis  : struct(x:  1675.0  mm, y:  1675.0  mm)
+)
+ 
+Global  coor_sys
+(
+)
+ 
+Field_cut  coor_sys
+(
+  base             : ref(Global)
+)
+ 
+Feed_1  coor_sys
+(
+  origin           : struct(x: 100 mm,  y: 0.0  mm,  z: 1190  mm),
+  x_axis           : struct(x: -1.0 , y: 0.0 , z: 0.0000000000000000001 ),
+  y_axis           : struct(x: 0.0 , y: 1.0 , z: 0.0000000000000000001 ),
+  base             : ref(Global)
+)
+ 
+Freq4GHz  frequency
+(
+  frequency_list   : sequence( 3.7  GHz)
+)
+ 
+Reflector  reflector
+(
+  coor_sys         : ref(Global),
+  surface          : ref(Paraboloid),
+  rim              : ref(Rim),
+  centre_hole_radius : 193 mm 
+)
+ 
+PO_1  po_single_face_scatterer
+(
+  frequency        : ref(Freq4GHz),
+  scatterer        : ref(Reflector)
+)
+ 
+Field_cut_1  spherical_cut
+(
+  file_name        : field_1.cut,
+  coor_sys         : ref(Field_cut),
+  theta_range      : struct(start: -90.0 , end: 90.0 , np: 180),
+  phi_range        : struct(start: -180.0 , end: 180.0 , np: 360)
+)
+ 
+D3_PLOT  plot_settings
+(
+)
+ 
+Coor_sys_plot  coor_sys_plot
+(
+)
+ 
+Feed_plot  feed_plot
+(
+)
+ 
+Reflector_plot  reflector_plot
+(
+)
+ 
+Output_points_plot  output_points_plot
+(
+)
+ 
+FeedPattern_1  gaussian_beam_pattern
+(
+  frequency        : ref(Freq4GHz),
+  coor_sys         : ref(Feed_1),
+  taper_angle      : 70.0 ,
+  taper            : -12.0 
+)
+ 

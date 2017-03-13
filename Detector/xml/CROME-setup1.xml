@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<MicrowaveDetector>
+
+  <array type="KASCADEGrande"/>
+  
+  <antenna id="1">
+     <dish type="CROMEsetup1"/>
+     <elevation> 90. </elevation>
+     <azimuth> 0. </azimuth>
+
+     <cameraAzimuth> 0. </cameraAzimuth>
+
+     <!-- 
+          Center between small antennas measured with GPS
+      -->
+     <x> -195.93 </x>
+     <y> -219.87 </y>
+     <z>    0.2 </z>
+
+     <!--
+         90cm offset dish with one active K-band receiver (channel 1)
+      -->
+     <channel id="1" type="CROMEsetup1">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 90. </elevation>
+       <azimuth> 90. </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 1.5 </z>
+     </channel>
+
+     <!--
+         150cm offset dish with one active K-band (channel 2) and two C-band receivers (channel 3 and 4)
+      -->
+     <channel id="2" type="CROMEsetup1">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 90. </elevation>
+       <azimuth> 90. </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 1.5 </z>
+     </channel>
+     <channel id="3" type="CROMEsetup1">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 90. </elevation>
+       <azimuth> 93. </azimuth>
+       <x> 0. </x>
+       <y> 0. </y>
+       <z> 1.5 </z>
+     </channel>
+     <channel id="4" type="CROMEsetup1">
+       <!-- angles in local antenna coord sys -->
+       <elevation> 90. </elevation>
+       <azimuth> 87. </azimuth>
+       <x> 0.  </x>
+       <y> 0. </y>
+       <z> 1.5 </z>
+     </channel>
+  </antenna>
+</MicrowaveDetector>

@@ -1,0 +1,158 @@
+#include <TApplication.h>
+#include <TH1D.h>
+#include <TH1F.h>
+#include <TROOT.h>
+#include <TCanvas.h>
+#include <TStyle.h>
+#include <TRandom.h>
+#include <TMath.h>
+#include <TF1.h>
+#include <TFile.h>
+#include <TKey.h>
+#include <cmath>
+#include <iostream>
+#include <TClass.h>
+#include <fftw3.h>
+#include <fstream>
+#include <string>
+
+using namespace std;
+
+void PrintHeader();
+
+
+
+
+void InitHist(TH1F* &h, const char* name, const int bins, const double bin_start, const double bin_stop)
+{
+    h = new TH1F(name,"",bins,bin_start,bin_stop);
+    //cout<<"No Crash:    "<<  h->GetName()  <<endl;
+}
+
+
+int main(int argc, char** argv) {
+  
+  if (argc != 2) {
+    cerr << "Usage: " << argv[0];
+    cerr << " data.root" << endl;
+    return 1;
+  }
+
+  const string Filename = string(argv[1]);
+  const int nBins = 768;
+  const double dT = 1.;
+  double nyquistFrequency = 1./(2.*dT);
+  // --- ROOT stuff
+  gROOT->SetStyle("Plain");
+  gStyle->SetOptStat(0);
+
+  TApplication theApp("App",&argc,argv);
+  TCanvas* canvas = new TCanvas("a","",19,19,1200,500);
+  canvas->Divide(2,1);
+  TCanvas* test = new TCanvas("te","",19,19,1200,500);
+  //--- FFT of data trace 
+
+  
+  //signal test
+  /*TH1F* h1 = new TH1F("h1","uniform",768,-2.,5.); 
+  TRandom rGen (0); 
+  for (int i=0; i<10000000; i++) { 
+    float x = rGen.Uniform(0.,10.); // Generate a random number according to the gaus distribution with mean=0, sigma=1
+    if (x <0) x=0.;
+    h1->Fill(x); // Fill the histogram with x
+  }
+  int norm=h1->GetEntries();
+
+  h1->Scale(1./norm);
+  test->cd();
+  h1->Draw();
+  */
+
+
+  /*
+  //Read ROOT format data
+  TFile *f = new TFile (Filename.c_str()); 
+  TIter next(f->GetListOfKeys());
+  TKey *key;
+  while ((key = (TKey*)next())) {
+    TClass *cl = gROOT->GetClass(key->GetClassName());
+    if (!cl->InheritsFrom("TH1")) continue;
+    TH1 *h = (TH1*)key->ReadObj();
+    double* in = (double *) fftw_malloc(sizeof(double) * nBins);
+    fftw_complex* out = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (nBins/2+1));
+    fftw_plan r2cPlan = fftw_plan_dft_r2c_1d(nBins, in, out, FFTW_MEASURE);
+    fftw_plan c2rPlan = fftw_plan_dft_c2r_1d(nBins, out, in, FFTW_MEASURE);
+    for ( int i=0; i<nBins; i++ ) in[i] = h->GetBinContent(i+1);
+    fftw_execute(r2cPlan);
+    //Plot FFT 
+    TH1D* hFreq = new TH1D("req","FFT;frequency",nBins/2.,0.,nyquistFrequency);
+    hFreq->GetXaxis()->SetNdivisions(1536);
+    for (int i = 0; i < (nBins / 2) + 1; i++) {
+      //double absval = out[i][1] * out[i][1]-out[i][0]*out[i][0];
+      double absval = sqrt(out[i][0]*out[i][0]+out[i][1]*out[i][1]);
+      hFreq->SetBinContent(i+1,absval);
+    }
+ 
+  canvas->cd(1); h->Draw();
+  canvas->cd(2); hFreq->Draw();
+  
+  // --- clean up FFTW3 
+  fftw_destroy_plan(r2cPlan);
+  fftw_destroy_plan(c2rPlan);
+  fftw_free(in);
+  fftw_free(out);
+
+  }*/
+ 
+  //Read ascii format data
+  
+  string line;
+  ifstream myfile ("traces_CHAPE_cornet.dat");
+  const int NREAL=81;
+  TFile *f = new TFile("trace_file.root","RECREATE");
+  vector <int> l; 
+  const int NBins_fft = 1500;
+  
+  if (myfile.is_open()) {
+    for(int i = 0; i < NREAL; i++) {
+      TH1F *h;TH1F *hFreq;
+      InitHist(h,Form("h_%d",i), nBins,0.,768.);
+      InitHist(hFreq,Form("hFreq_%d",i),NBins_fft/2.,0.,nyquistFrequency);
+      double* in = (double *) fftw_malloc(sizeof(double) * NBins_fft);
+      fftw_complex* out = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (NBins_fft/2+1));
+      fftw_plan r2cPlan = fftw_plan_dft_r2c_1d(NBins_fft, in, out, FFTW_MEASURE);
+      fftw_plan c2rPlan = fftw_plan_dft_c2r_1d(NBins_fft, out, in, FFTW_MEASURE);	
+      for (int j = 0; j < nBins ; j++) {
+        int dum,s,val;
+        myfile>>dum>>s>>val;
+        h->SetBinContent(j,val);
+    	in[j] = h->GetBinContent(j);  
+      }
+      h->Write();
+      fftw_execute(r2cPlan);
+      for (int s = 0; s < (NBins_fft/2+1); s++) {
+        double absval = out[s][0]*out[s][0]+out[s][1]*out[s][1];
+        hFreq->SetBinContent(s,absval);
+      }
+      hFreq->Write();
+      // --- clean up FFTW3 
+      fftw_destroy_plan(r2cPlan);
+      fftw_destroy_plan(c2rPlan);
+      fftw_free(in);
+      fftw_free(out);
+    }
+    f->Write(); 
+    myfile.close();
+  }
+  else cout << "Unable to open file"; 
+  f->Close();
+  
+ 
+ // double* in = (double *) fftw_malloc(sizeof(double) * nBins);
+ // for ( int i=0; i<nBins; i++ ) in[i] = ;
+
+ // theApp.Run();
+  return 0;
+
+}
+

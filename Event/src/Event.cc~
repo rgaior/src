@@ -1,0 +1,857 @@
+#include <Event.h>
+#include <Array.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+#include <Antenna.h>
+#include <Channel.h>
+#include <Atmosphere.h>
+#include <MathFunctions.h>
+#include <MathConstants.h>
+#include <AugerUnits.h>
+#include <RandomGenerator.h>
+#include <Math/GSLRndmEngines.h>
+
+#include <stdexcept>
+#include <sstream>
+#include <algorithm>
+
+
+using namespace std;
+using namespace utl;
+
+
+ClassImp(Event)
+
+
+Event::Event() :
+  fEventId(0),
+  fRunId(0),
+  fGPSSecond(0),
+  fGPSNanoSecond(0)
+{
+
+}
+
+bool
+Event::HasAntennaData(unsigned int antennaId)
+  const
+{
+  for ( ConstAntennaDataIterator iter = AntennasBegin();
+        iter != AntennasEnd(); ++iter )
+    if ( iter->GetId() == antennaId )
+      return true;
+
+  return false;
+}
+
+
+void
+Event::MakeAntennaData(unsigned int antennaId)
+{
+  if ( HasAntennaData(antennaId) ) {
+    cerr << " Event::MakeAntennaData() - Error"
+         << " antenna " << antennaId << " exists!! Ignore..."
+         << endl;
+    return;
+  }
+
+  AntennaData tmp;
+  tmp.SetId(antennaId);
+  fAntennas.push_back(tmp);
+}
+
+
+void
+Event::AddAntennaData(const AntennaData& data)
+{
+  if ( HasAntennaData(data.GetId()) ) {
+    cerr << " Event::AddAntennaData() - Error"
+         << " antenna " << data.GetId() << " exists!! Ignore..."
+         << endl;
+    return;
+  }
+
+  fAntennas.push_back(data);
+}
+
+
+const AntennaData&
+Event::GetAntennaData(unsigned int antennaId)
+  const
+{
+  for ( ConstAntennaDataIterator iter = AntennasBegin();
+        iter != AntennasEnd(); ++iter )
+    if ( iter->GetId() == antennaId )
+      return *iter;
+
+  ostringstream errMsg;
+  errMsg << " Event::GetAntennaData() - no antenna id= " << antennaId;
+  throw std::runtime_error(errMsg.str());
+}
+
+
+AntennaData&
+Event::GetAntennaData(unsigned int antennaId)
+{
+  for ( AntennaDataIterator iter = AntennasBegin();
+        iter != AntennasEnd(); ++iter )
+    if ( iter->GetId() == antennaId )
+      return *iter;
+
+  ostringstream errMsg;
+  errMsg << " Event::GetAntennaData() - no antenna id= " << antennaId;
+  throw std::runtime_error(errMsg.str());
+}
+
+
+bool
+Event::HasSimData()
+  const
+{
+  if (this->GetSimData().GetShower().GetEnergy() > 0) return true;
+  return false;
+}
+
+
+vector<double> Event::GetExpectedSignalWindow(unsigned int antennaId, unsigned int channelId, double coneAngle, bool includeErrors)
+  const throw(TriggerTimeNotFoundError)
+{ //cout << "Get Expected Window" <<endl;
+  // Delay found between signals in Crome and calculated time windows of
+  // expected signal. Almost no delay before the installation of a discriminator
+  // in the digitalization of station 19 on August 2nd. Added to signal delay in
+  // ground impact calculation. Sigma has to be applied here.
+#warning TODO: move time delays to xml
+  double sigmaCromeDaqDelay; 
+  if(GetGPSSecond() < 996278415)
+    sigmaCromeDaqDelay = 6.6*nanosecond;
+  else
+    sigmaCromeDaqDelay = 6.2*nanosecond;
+  // Unceretainty of pointing of Crome dish
+  // (Estimation)
+  const double sigmaCromePointing = 0.5*degree;
+  // Uncertainty in cable delay of Crome DAQ
+  // (Measurements by F. Werner, September 2012)
+  const double sigmaCromeCableDelay = 1*ns;
+  // Time uncertainty of Grande station
+  // (Reference: doi:10.1016/j.nima.2010.03.147)
+  const double sigmaGrandeStationTime = 2*ns;
+  // Uncertainty in determination of time of digitized Grande station in Crome
+  // (Estimation)
+  const double sigmaDigitizedTime = 5*ns;
+  // Uncertainty in determination of ground impact time in Crome
+  // (Variation of hottest station for impact time calculation)
+  const double sigmaGroundImpactTime = 5.6*ns;
+
+  // Get ground impact time in Crome time using the signal from a digitized
+  // grande station.
+  double groundImpactTime = 0.;
+  const Array& theArray = Detector::GetInstance().GetSetup().GetArray();
+  const ArrayData& arrayData = GetArrayData();
+  for ( Array::ConstStationIterator iter = theArray.StationsBegin();
+        iter != theArray.StationsEnd(); ++iter ) {
+    int stationId = iter->first; 
+    if(!arrayData.HasStationData(stationId))
+      continue;
+    const StationData& stationData = arrayData.GetStationData(stationId);
+
+    if (stationData.HasSignal()) {
+      groundImpactTime = arrayData.GetGroundImpactTimeCrome(stationId);
+      //cout <<"--> Impact time on this antenna (GetExpectedSignalWindow): "<< groundImpactTime/microsecond<<" µs."<<endl;
+    }
+    
+    
+  }
+
+  const Shower& theShower = arrayData.GetShower();
+  const Antenna& antenna = Detector::GetInstance().GetSetup().GetAntenna(antennaId);
+  const Channel& channel = antenna.GetChannel(channelId);
+  const double cableDelay = channel.GetCableDelay(); 
+
+  vector<double> window, windowLow, windowHigh;
+  if(!includeErrors) {  
+    return CalculateExpectedWindow(theShower, channel, coneAngle,
+                                   groundImpactTime); 
+  }
+  else { //cout <<"calculating errors"<<endl;
+    // Use 100 fluctuated showers and parameters to realisticly broaden expected
+    // signal window
+    ROOT::Math::GSLRngMT* random =
+      &(RandomGenerator::GetInstance().GetDetectorRandom());
+
+    const double totalGroundTimeSigma =
+      sqrt(pow(sigmaGrandeStationTime, 2) + pow(sigmaDigitizedTime, 2) +
+           pow(sigmaGroundImpactTime, 2) + pow(sigmaCromeDaqDelay, 2));
+
+    const int n = 100;
+    for(int it = 0; it < n; it++) {
+      // Fluctuate ground impact time and crome daq delay
+      const double fluctGroundImpactTime =
+        groundImpactTime + random->Gaussian(totalGroundTimeSigma);
+      double fluctCableDelay =
+        cableDelay + random->Gaussian(sigmaCromeCableDelay);
+
+      // Copy the channel and shower so we can do nasty things
+      Channel copyChannel = antenna.GetChannel(channelId);
+      Shower copyShower = arrayData.GetShower();
+
+      // Set new fluctuated cable delay
+      copyChannel.SetCableDelay(fluctCableDelay);
+
+      // Smear pointing of channel axis rotating the channel axis around two
+      // orthogonal axes using two gaussian distributions
+      TVector3 pointing = channel.GetPointingDirection();
+      TVector3 axis1 = pointing.Orthogonal();
+      TVector3 axis2 = pointing.Cross(axis1);
+      pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis1);
+      pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis2);
+      copyChannel.SetPointingDirection(pointing);
+
+      // Fluctuate shower core and axis within Grande uncertainties
+      copyShower.Fluctuate();
+      //cout <<"Fluctuating bro ..."<<endl;
+      // Calculate expected signal window with fluctuated values
+      vector<double> windowFluct
+        = CalculateExpectedWindow(copyShower, copyChannel, coneAngle,
+                                  fluctGroundImpactTime);
+
+      if(windowFluct.size() == 2) {
+        sort(windowFluct.begin(),windowFluct.end());
+        windowLow.push_back(windowFluct[0]);
+        windowHigh.push_back(windowFluct[1]);
+      }
+    }
+
+    // Only return a window if at least 10 variations give an expected signal
+    if(windowLow.size() > n*0.1) { //cout <<"new window"<<endl;
+      window.push_back(kthElement(windowLow,int(windowLow.size()*0.05)));
+      window.push_back(kthElement(windowHigh,int(windowHigh.size()*0.95)));
+      sort(window.begin(),window.end());
+    }
+  }
+
+  return window;
+}
+
+
+vector<double>
+Event::CalculateExpectedWindow(Shower shower,
+                               Channel channel,
+                               double coneAngle,
+                               double groundImpactTime)
+  const
+{  //cout << "--> Outputs from GetExpectedWindow() :"<<endl;
+  const TVector3& showerCore = shower.GetCore();  
+  const TVector3& showerAxis = shower.GetAxis();
+  const TVector3& pos = channel.GetGlobalPosition();
+  const TVector3& pointing = channel.GetPointingDirection();
+  const double frequency = channel.GetCenterFrequency(); 
+  const double cableDelay = channel.GetCableDelay(); // now, set to 0
+  vector<TVector3> intersection = RayConeIntersection(showerCore, showerAxis, pos,pointing, coneAngle);
+  const Atmosphere& atmo = Atmosphere::GetInstance();
+  const double arrayHeight = Detector::GetInstance().GetSetup().GetArray().GetHeight();
+  vector<double> window;
+  
+  if(intersection.size() == 0) return window ;
+  else if(intersection.size() == 1) {
+    if(intersection[0].Z() < 10*km) {
+        
+      cout <<" antenna pos :  x="<< pos.X() <<", y="<<pos.Y()<<", z="<<pos.Z() + arrayHeight<<", intersection (<10 km): x="<<intersection[0].X()<<", y= "<<intersection[0].Y()<<", z= "<<intersection[0].Z() + arrayHeight<<endl;
+      double tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                        intersection[0].Z() + arrayHeight,
+                                        (intersection[0]-pos).CosTheta(),
+                                        frequency);
+      cout <<"-----> TOF t0: " << tof/microsecond <<endl ;
+      double showerTime = (intersection[0]-showerCore).Mag()/kSpeedOfLight;
+      cout <<"-----> shower time : " << showerTime/microsecond <<", distance to core:  "<<(intersection[0]-showerCore).Mag()<<endl ;
+      window.push_back(tof-showerTime+groundImpactTime+cableDelay);
+      cout <<"-----> window t0 : " << (tof-showerTime+groundImpactTime+cableDelay)/microsecond <<endl ;
+      // Calculate point at 10km inside cone as edge of window
+        
+      double tt = (10*km-showerCore.Z())/showerAxis.Z();
+      TVector3 top = showerCore + tt*showerAxis;
+      cout <<"at 10 km intersection t1, x= "<<top.X()<<" , y= "<<top.Y()<<" , Z= "<<top.Z()+ arrayHeight<<endl;
+      tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight, top.Z() + arrayHeight, (top-pos).CosTheta(), frequency);
+      cout <<"-----> TOF t0: " << tof/microsecond <<endl ;
+      showerTime = (top-showerCore).Mag()/kSpeedOfLight;
+      cout <<"-----> shower time : " << showerTime/microsecond <<", distance to core:  "<<(top-showerCore).Mag()<<endl ;
+      window.push_back(tof-showerTime+groundImpactTime+cableDelay);
+        cout <<"-----> window t0 : " << (tof-showerTime+groundImpactTime+cableDelay)/microsecond <<endl ;
+
+    }
+    else { //cout <<", h2 (>10 km) " <<endl;
+        return window;}
+  }
+  else if(intersection.size() == 2) { cout << "2 points"<<endl;
+    
+    TVector3 intersectionLow, intersectionHigh;
+    if(intersection[0].Z() <= intersection[1].Z()) 
+    {
+      intersectionLow = intersection[0];
+      intersectionHigh = intersection[1];
+    }
+    else {
+      intersectionLow = intersection[1];
+      intersectionHigh = intersection[0];
+    }
+    if(intersectionLow.Z() <= 10*km) { cout <<" h1 (low)< 10km =  "<<pos.Z() + arrayHeight<<", h2 = "<<intersectionLow.Z() + arrayHeight<<endl;
+       
+      double tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                        intersectionLow.Z() + arrayHeight,
+                                        (intersectionLow-pos).CosTheta(),
+                                        frequency);
+      //cout <<"-----> TOF :" <<tof<<endl;
+      double showerTime = (intersectionLow-showerCore).Mag()/kSpeedOfLight;
+       
+      window.push_back(tof-showerTime+groundImpactTime+cableDelay);
+      if(intersectionHigh.Z() <= 10*km) { cout <<" h1 (high)< 10 km =  "<<pos.Z() + arrayHeight<<", h2 = "<<intersectionHigh.Z() + arrayHeight<<endl;
+        tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                   intersectionHigh.Z() + arrayHeight,
+                                   (intersectionHigh-pos).CosTheta(),
+                                   frequency);
+        //cout <<" TOF -----> " <<tof<<endl;
+        showerTime = (intersectionHigh-showerCore).Mag()/kSpeedOfLight;
+        window.push_back(tof-showerTime+groundImpactTime+cableDelay);
+      }
+      else { cout << "h1 (high)> 10 km "<<endl;
+        // Calculate point at 10km inside cone as edge of window
+        double tt = (10*km-showerCore.Z())/showerAxis.Z();
+        TVector3 top = showerCore + tt*showerAxis; cout <<" h1 =  "<<pos.Z() + arrayHeight<<", h2 (limited to 10km) = "<<top.Z() + arrayHeight<<endl;
+        tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                   top.Z() + arrayHeight,
+                                   (top-pos).CosTheta(),
+                                   frequency);
+        //cout <<"-----> TOF " <<tof<<endl;
+        showerTime = (top-showerCore).Mag()/kSpeedOfLight;
+        window.push_back(tof-showerTime+groundImpactTime+cableDelay);
+         
+      }
+    }
+    else{ cout <<", h2 (low )(>10 km) " <<endl;
+        return window;}
+  }
+
+  return window;
+
+}
+
+
+SensitivityTrace
+Event::GetSensitivityTrace(unsigned int antennaId,
+                           unsigned int channelId,
+                           double coneAngle,
+                           double stepSize,
+                           bool includeErrors)
+  const
+{
+    //cout << "-----> Output from GetSensitivityTrace():"<<endl;
+  SensitivityTrace sensTrace;
+
+  // Delay found between signals in Crome and calculated time windows of
+  // expected signal. Almost no delay before the installation of a discriminator
+  // in the digitalization of station 19 on August 2nd. Added to signal delay in
+  // ground impact calculation. Sigma has to be applied here.
+  #warning TODO: move time delays to xml
+  double sigmaCromeDaqDelay;
+  if(GetGPSSecond() < 996278415)
+    sigmaCromeDaqDelay =6*nanosecond;// 6.6*nanosecond;
+  else
+    sigmaCromeDaqDelay = 6*nanosecond;//6.2*nanosecond;
+  // Unceretainty of pointing of Crome dish
+  // (Estimation)
+  const double sigmaCromePointing = 0.5*degree;//0.5*degree;
+  // Uncertainty in cable delay of Crome DAQ
+  // (Measurements by F. Werner, September 2012)
+  const double sigmaCromeCableDelay = 0*ns;//;1*ns;
+  // Time uncertainty of Grande station
+  // (Reference: doi:10.1016/j.nima.2010.03.147)
+  const double sigmaGrandeStationTime = 2*ns;//2*ns;
+  // Uncertainty in determination of time of digitized Grande station in Crome
+  // (Estimation)
+  const double sigmaDigitizedTime = 0*ns;//5*ns;
+  // Uncertainty in determination of ground impact time in Crome
+  // (Variation of hottest station for impact time calculation)
+  const double sigmaGroundImpactTime = 0*ns;//5.6*ns;
+
+  // Define CROME bin size and trace length
+  double binWidth = 25*nanosecond;//0.8*nanosecond;
+  double traceLength = 19.2*microsecond;
+
+  const ArrayData& arrayData = GetArrayData();
+  const Shower& shower = arrayData.GetShower();
+
+  // Get ground impact time in Crome time using the signal from a digitized
+  // grande station.
+  double groundImpactTime = 0.;
+  const Array& theArray = Detector::GetInstance().GetSetup().GetArray();
+  for ( Array::ConstStationIterator iter = theArray.StationsBegin();
+        iter != theArray.StationsEnd(); ++iter ) {
+    int stationId = iter->first;
+    if(!arrayData.HasStationData(stationId))
+      continue;
+    const StationData& stationData = arrayData.GetStationData(stationId);
+
+    if (stationData.HasSignal()) {
+      groundImpactTime = arrayData.GetGroundImpactTimeCrome(stationId);
+        //cout <<"--> Impact time on this antenna (GetSensitivityTrace): "<< groundImpactTime/microsecond<<" µs."<<endl;
+    }
+  }
+
+  const Antenna& antenna = Detector::GetInstance().GetSetup().GetAntenna(antennaId);
+  const Channel& channel = antenna.GetChannel(channelId);
+    const double cableDelay = channel.GetCableDelay();
+
+  sensTrace.trace = CalculateSensitivityTrace(shower, channel, coneAngle,
+                                              groundImpactTime, stepSize);
+
+  if(!includeErrors) {
+    vector<double> empty;
+    sensTrace.trace_min = make_pair(empty,empty);
+    sensTrace.trace_max = make_pair(empty,empty);
+  }
+  else {
+    // Use 100 fluctuated showers and parameters to realisticly broaden expected
+    // signal window
+    ROOT::Math::GSLRngMT* random =
+      &(RandomGenerator::GetInstance().GetDetectorRandom());
+
+    const double totalGroundTimeSigma =
+      sqrt(pow(sigmaGrandeStationTime, 2) + pow(sigmaDigitizedTime, 2) +
+           pow(sigmaGroundImpactTime, 2) + pow(sigmaCromeDaqDelay, 2));
+
+    const int nvec = int(traceLength/binWidth);
+    vector<double> minTrace(nvec,999.);
+    vector<double> maxTrace(nvec,0.);
+    vector<double> minTime, maxTime;
+    for(int k = 0; k <= traceLength/binWidth; k++) {
+      minTime.push_back(-traceLength/microsecond/2. + k*binWidth/microsecond);
+      maxTime.push_back(-traceLength/microsecond/2. + k*binWidth/microsecond);
+    }
+
+    const int n = 50;
+    for(int it = 0; it < n; it++) {
+      // Fluctuate ground impact time and crome daq delay
+      const double fluctGroundImpactTime =
+        groundImpactTime + random->Gaussian(totalGroundTimeSigma);
+      double fluctCableDelay =
+        cableDelay + random->Gaussian(sigmaCromeCableDelay);
+
+      // Copy the channel and shower so we can do nasty things
+      Channel copyChannel = antenna.GetChannel(channelId);
+      Shower copyShower = arrayData.GetShower();
+
+      // Set new fluctuated cable delay
+      copyChannel.SetCableDelay(fluctCableDelay);
+
+      // Smear pointing of channel axis rotating the channel axis around two
+      // orthogonal axes using two gaussian distributions
+      TVector3 pointing = channel.GetPointingDirection();
+      TVector3 axis1 = pointing.Orthogonal();
+      TVector3 axis2 = pointing.Cross(axis1);
+      pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis1);
+      pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis2);
+      copyChannel.SetPointingDirection(pointing);
+
+      // Fluctuate shower core and axis within Grande uncertainties
+      copyShower.Fluctuate();
+
+      // Calculate sensitivity trace with fluctuated values
+      pair< vector<double>, vector<double> > sensTraceFluct =
+        CalculateSensitivityTrace(copyShower, copyChannel, coneAngle,
+                                  fluctGroundImpactTime, stepSize);
+
+      vector<double> time = sensTrace.trace.first;
+      vector<double> trace = sensTrace.trace.second;
+
+      for(unsigned int i = 0; i < time.size(); i++) {
+        int bin = int((time[i]*microsecond + traceLength/2.) / binWidth);
+        if(trace[i] < minTrace[bin])
+          minTrace[bin] = trace[i];
+        if(trace[i] > maxTrace[bin])
+          maxTrace[bin] = trace[i];
+      }
+
+    }
+
+    for(unsigned int j = 0; j < minTrace.size(); j++)
+      if(minTrace[j] == 999)
+        minTrace[j] = 0;
+
+    sensTrace.trace_min = make_pair(minTime, minTrace);
+    sensTrace.trace_max = make_pair(maxTime, maxTrace);
+  }
+
+  return sensTrace;
+}
+
+
+pair< vector<double>, vector<double> >
+Event::CalculateSensitivityTrace(Shower shower,
+                                 Channel channel,
+                                 double coneAngle,
+                                 double groundImpactTime,
+                                 double stepSize)
+  const
+{
+  const TVector3& showerCore = shower.GetCore();
+  const TVector3& showerAxis = shower.GetAxis();
+
+  const TVector3& pos = channel.GetGlobalPosition();
+  const TVector3& pointing = channel.GetPointingDirection();
+  const double frequency = channel.GetCenterFrequency();
+  const double cableDelay = channel.GetCableDelay();
+
+  const Atmosphere& atmo = Atmosphere::GetInstance();
+  const double arrayHeight =
+    Detector::GetInstance().GetSetup().GetArray().GetHeight();
+
+  vector<double> time, trace;
+
+  vector<TVector3> intersection =
+    RayConeIntersection(showerCore,showerAxis,pos,pointing,coneAngle);
+
+  if(intersection.size() == 0)
+    return make_pair(time, trace);
+
+  TVector3 pointHigh, pointLow;
+  if(intersection.size() == 2) {
+
+      if(intersection[0].Z() <= 10*km) {
+        if(intersection[0].Z() < intersection[1].Z()) {
+          pointLow = intersection[0];
+          pointHigh = intersection[1];
+        }
+        else {
+          pointLow = intersection[1];
+          pointHigh = intersection[0];
+        }
+        if(pointHigh.Z() <= 10*km) {
+          if(intersection[0].Z() < intersection[1].Z()) {
+            pointLow = intersection[0];
+            pointHigh = intersection[1];
+          }
+          else {
+            pointLow = intersection[1];
+            pointHigh = intersection[0];
+          }
+        }
+        else {
+            // Calculate point at 10km inside cone as edge of window
+            double tt = (10*km-showerCore.Z())/showerAxis.Z();
+            pointHigh = showerCore + tt*showerAxis;
+
+        }
+      
+      }
+      
+      
+    /*if(intersection[0].Z() < intersection[1].Z()) {
+      pointLow = intersection[0];
+      pointHigh = intersection[1];
+    }
+    else {
+      pointLow = intersection[1];
+      pointHigh = intersection[0];
+    }*/
+      //cout <<" 2 point : " <<"point low "<<pointLow.Z() <<" point high"<< pointHigh.Z()<<endl;
+  }
+  else {
+    pointLow = intersection[0];
+      double tt = (10*km-showerCore.Z())/showerAxis.Z();
+    pointHigh = showerCore + tt*showerAxis;
+    //cout <<" 1 point : " <<"point low "<<pointLow.Z() <<" point high"<< pointHigh.Z()<<endl;
+  }
+
+  const double dist = (pointHigh-pointLow).Mag(); 
+    cout << "---> distance between point high and point low "<< dist <<endl;
+  for(double delta = 0; delta < dist; delta += stepSize) {
+      TVector3 point = pointLow + delta*showerAxis;
+      
+      
+    double coreTime = (point-showerCore).Mag()/kSpeedOfLight;
+    double tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                      point.Z() + arrayHeight,
+                                      (point-pos).CosTheta(),
+                                      frequency);
+      if (delta==0 || delta == (dist-stepSize) ) { //cout <<delta<<": h1 =  "<<pos.Z() + arrayHeight<<", h2 = "<<point.Z() + arrayHeight<<endl;
+          cout <<"-----> TOF " <<tof<<endl;
+      }
+    double diffTime = (tof-coreTime+groundImpactTime+cableDelay)/microsecond;
+      
+      
+    time.push_back(diffTime);
+    
+
+    double effArea = channel.GetEffectiveArea(point); 
+    double r = (point-pos).Mag(); 
+      trace.push_back((effArea)/(4*kPi*r*r));
+  }
+
+  return make_pair(time, trace);
+
+}
+
+
+
+
+SensitivityTrace
+Event::GetSensitivityTraceWithN(unsigned int antennaId,
+                           unsigned int channelId,
+                           double coneAngle,
+                           double stepSize,
+                           bool includeErrors)
+const
+{
+    
+    SensitivityTrace sensTraceWithN;
+    
+    // Delay found between signals in Crome and calculated time windows of
+    // expected signal. Almost no delay before the installation of a discriminator
+    // in the digitalization of station 19 on August 2nd. Added to signal delay in
+    // ground impact calculation. Sigma has to be applied here.
+#warning TODO: move time delays to xml
+    double sigmaCromeDaqDelay;
+    if(GetGPSSecond() < 996278415)
+        sigmaCromeDaqDelay =6*nanosecond;// 6.6*nanosecond;
+    else
+        sigmaCromeDaqDelay = 6*nanosecond;//6.2*nanosecond;
+    // Unceretainty of pointing of Crome dish
+    // (Estimation)
+    const double sigmaCromePointing = 0.5*degree;//0.5*degree;
+    // Uncertainty in cable delay of Crome DAQ
+    // (Measurements by F. Werner, September 2012)
+    const double sigmaCromeCableDelay = 0*ns;//;1*ns;
+    // Time uncertainty of Grande station
+    // (Reference: doi:10.1016/j.nima.2010.03.147)
+    const double sigmaGrandeStationTime = 2*ns;//2*ns;
+    // Uncertainty in determination of time of digitized Grande station in Crome
+    // (Estimation)
+    const double sigmaDigitizedTime = 0*ns;//5*ns;
+    // Uncertainty in determination of ground impact time in Crome
+    // (Variation of hottest station for impact time calculation)
+    const double sigmaGroundImpactTime = 0*ns;//5.6*ns;
+    
+    // Define CROME bin size and trace length
+    double binWidth = 25*nanosecond;//0.8*nanosecond;
+    double traceLength = 19.2*microsecond;
+    
+    const ArrayData& arrayData = GetArrayData();
+    const Shower& shower = arrayData.GetShower();
+    
+    // Get ground impact time in Crome time using the signal from a digitized
+    // grande station.
+    double groundImpactTime = 0.;
+    const Array& theArray = Detector::GetInstance().GetSetup().GetArray();
+    for ( Array::ConstStationIterator iter = theArray.StationsBegin();
+         iter != theArray.StationsEnd(); ++iter ) {
+        int stationId = iter->first;
+        if(!arrayData.HasStationData(stationId))
+            continue;
+        const StationData& stationData = arrayData.GetStationData(stationId);
+        
+        if (stationData.HasSignal()) {
+            groundImpactTime = arrayData.GetGroundImpactTimeCrome(stationId);
+            
+        }
+    }
+    
+    const Antenna& antenna = Detector::GetInstance().GetSetup().GetAntenna(antennaId);
+    const Channel& channel = antenna.GetChannel(channelId);
+    const double cableDelay= channel.GetCableDelay();
+    
+    sensTraceWithN.trace = CalculateSensitivityTraceWithN(shower, channel, coneAngle,
+                                                groundImpactTime, stepSize);
+    
+    if(!includeErrors) {
+        vector<double> empty;
+        sensTraceWithN.trace_min = make_pair(empty,empty);
+        sensTraceWithN.trace_max = make_pair(empty,empty);
+    }
+    else {
+        // Use 100 fluctuated showers and parameters to realisticly broaden expected
+        // signal window
+        ROOT::Math::GSLRngMT* random =
+        &(RandomGenerator::GetInstance().GetDetectorRandom());
+        
+        const double totalGroundTimeSigma =
+        sqrt(pow(sigmaGrandeStationTime, 2) + pow(sigmaDigitizedTime, 2) +
+             pow(sigmaGroundImpactTime, 2) + pow(sigmaCromeDaqDelay, 2));
+        
+        const int nvec = int(traceLength/binWidth);
+        vector<double> minTrace(nvec,999.);
+        vector<double> maxTrace(nvec,0.);
+        vector<double> minTime, maxTime;
+        for(int k = 0; k <= traceLength/binWidth; k++) {
+            minTime.push_back(-traceLength/microsecond/2. + k*binWidth/microsecond);
+            maxTime.push_back(-traceLength/microsecond/2. + k*binWidth/microsecond);
+        }
+        
+        const int n = 50;
+        for(int it = 0; it < n; it++) {
+            // Fluctuate ground impact time and crome daq delay
+            const double fluctGroundImpactTime =
+            groundImpactTime + random->Gaussian(totalGroundTimeSigma);
+            double fluctCableDelay =
+            cableDelay + random->Gaussian(sigmaCromeCableDelay);
+            
+            // Copy the channel and shower so we can do nasty things
+            Channel copyChannel = antenna.GetChannel(channelId);
+            Shower copyShower = arrayData.GetShower();
+            
+            // Set new fluctuated cable delay
+            copyChannel.SetCableDelay(fluctCableDelay);
+            
+            // Smear pointing of channel axis rotating the channel axis around two
+            // orthogonal axes using two gaussian distributions
+            TVector3 pointing = channel.GetPointingDirection();
+            TVector3 axis1 = pointing.Orthogonal();
+            TVector3 axis2 = pointing.Cross(axis1);
+            pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis1);
+            pointing.Rotate(random->Gaussian(sigmaCromePointing / rad), axis2);
+            copyChannel.SetPointingDirection(pointing);
+            
+            // Fluctuate shower core and axis within Grande uncertainties
+            copyShower.Fluctuate();
+            
+            // Calculate sensitivity trace with fluctuated values
+            pair< vector<double>, vector<double> > sensTraceFluct =
+            CalculateSensitivityTraceWithN(copyShower, copyChannel, coneAngle,
+                                      fluctGroundImpactTime, stepSize);
+            
+            vector<double> time = sensTraceWithN.trace.first;
+            vector<double> trace = sensTraceWithN.trace.second;
+            
+            for(unsigned int i = 0; i < time.size(); i++) {
+                int bin = int((time[i]*microsecond + traceLength/2.) / binWidth);
+                if(trace[i] < minTrace[bin])
+                    minTrace[bin] = trace[i];
+                if(trace[i] > maxTrace[bin])
+                    maxTrace[bin] = trace[i];
+            }
+            
+        }
+        
+        for(unsigned int j = 0; j < minTrace.size(); j++)
+            if(minTrace[j] == 999)
+                minTrace[j] = 0;
+        
+        sensTraceWithN.trace_min = make_pair(minTime, minTrace);
+        sensTraceWithN.trace_max = make_pair(maxTime, maxTrace);
+    }
+    
+    return sensTraceWithN;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pair< vector<double>, vector<double> >
+Event::CalculateSensitivityTraceWithN(Shower shower,
+                                 Channel channel,
+                                 double coneAngle,
+                                 double groundImpactTime,
+                                 double stepSize)
+const
+{
+    const TVector3& showerCore = shower.GetCore();
+    const TVector3& showerAxis = shower.GetAxis();
+    //N calculus
+    double costheta = shower.GetCosZenith();
+    double Xmax     = shower.GetXmax();
+    double Nmax     = shower.GetNmax();
+    double Lambda   = shower.GetLambda();
+    double X0       = shower.GetX0();
+
+    
+    
+    
+    
+    const TVector3& pos = channel.GetGlobalPosition();
+    const TVector3& pointing = channel.GetPointingDirection();
+    const double frequency = channel.GetCenterFrequency();
+    const double cableDelay = channel.GetCableDelay();
+    
+    const Atmosphere& atmo = Atmosphere::GetInstance();
+    const double arrayHeight =
+    Detector::GetInstance().GetSetup().GetArray().GetHeight();
+    
+    vector<double> time, trace;
+    
+    vector<TVector3> intersection =
+    RayConeIntersection(showerCore,showerAxis,pos,pointing,coneAngle);
+    
+    if(intersection.size() == 0)
+        return make_pair(time, trace);
+    
+    TVector3 pointHigh, pointLow;
+    if(intersection.size() == 2) {
+        if(intersection[0].Z() < intersection[1].Z()) {
+            pointLow = intersection[0];
+            pointHigh = intersection[1];
+        }
+        else {
+            pointLow = intersection[1];
+            pointHigh = intersection[0];
+        }
+    }
+    else {
+        pointLow = intersection[0];
+        double tt = (10*km-showerCore.Z())/showerAxis.Z();
+        pointHigh = showerCore + tt*showerAxis;
+    }
+    
+    const double dist = (pointHigh-pointLow).Mag();
+    
+    for(double delta = 0; delta < dist; delta += stepSize) {
+        TVector3 point = pointLow + delta*showerAxis;
+        
+        const double depth = atmo.Depth(point.Z(), costheta);
+        
+        double N = Nmax * pow((depth - X0) / (Xmax - X0),
+                              (Xmax - X0) / Lambda) *
+        exp((Xmax - depth) / Lambda);
+        if (N < 1)
+            N = 0;
+        
+        
+        double coreTime = (point-showerCore).Mag()/kSpeedOfLight;
+        double tof = atmo.GetTimeOfFlight(pos.Z() + arrayHeight,
+                                          point.Z() + arrayHeight,
+                                          (point-pos).CosTheta(),
+                                          frequency);
+        double diffTime = (tof-coreTime+groundImpactTime+cableDelay)/microsecond;
+        time.push_back(diffTime);
+        
+        
+        double effArea = channel.GetEffectiveArea(point); 
+        double r = (point-pos).Mag();
+        trace.push_back((N/Nmax)/**effArea/(4*kPi*r*r)*/);
+    }
+    
+    return make_pair(time, trace);
+    
+}
+
+
+
+void Event::Dump(std::ostream& o)
+  const
+{
+    o << "event: eventId "< "\n"
+      << fEventId 
+      << endl;
+}
+
+
+
+
+

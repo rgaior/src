@@ -1,0 +1,444 @@
+<?xml version="1.0"?>
+<ArrayModels>
+  <array type="KASCADEGrande">
+    <!--
+         Coordinates of the 37 KASCADE-Grande Stations.
+
+         The KG coordinates listet below are the centers of the 10m² of
+         scintillator in all 3 directions in reference to the KASCADE
+         coordinate system which is basically the center of the old KASCADE
+         array.  All measures are given in [m]. The height z has an
+         offset of 110.1m which is the nominal height of KASCADE above sea
+         level. (X) is roughly W-E direction, Y is N-S direction.  Note
+         that the scintillator box inside each station is 3.2x3.2x0.04m³
+         wide.
+      -->
+
+    <!-- height of array [m] -->
+    <height> 110.1 </height>
+
+    <!-- azimuthal rotation of array system wrt. north  [deg.] -->
+    <phi> -15. </phi>
+
+    <!-- delay due to detectors of Grande station (scintillator, PMT,
+         internal signal propagation) [ns]
+         risetime in scintillator: 0 ns
+         30 cm between scintillator plate and PMT: 1 ns
+         risetime in PMT: 3 ns
+         propagation time in PMT: 40 ns -->
+    <detectorDelay> 44 </detectorDelay>
+    <!-- delay due to electronics of Grande station [ns]
+         10m RG 59 with 4.1 ns/m: 41 ns
+         Discriminator: 6 ns-->
+    <electronicsDelay> 47 </electronicsDelay>
+    <!-- delay due to cable length between Grande station and
+         Grande DAQ [ns]
+         750m with 4.1 ns/m: 3075 ns -->
+    <cableDelay> 3075 </cableDelay>
+
+    <!-- station positions [m]  -->
+    <stationList>
+      <station id="1">
+        <x> -0.14 </x>
+        <y> 65.33 </y>
+        <z> 2.47  </z>
+      </station>
+      <station id="2">
+        <x> -131.26 </x>
+        <y> 70.87   </y>
+        <z> 2.05    </z>
+      </station>
+      <station id="3">
+        <x> -257.02 </x>
+        <y> 101.73  </y>
+        <z> 1.96    </z>
+      </station>
+      <station id="4">
+        <x> -384.85 </x>
+        <y> 96.12   </y>
+        <z> 0.84    </z>
+      </station>
+      <station id="5">
+        <x> -499.64 </x>
+        <y> 95.51   </y>
+        <z> 1.81    </z>
+      </station>
+      <station id="6">
+        <x> 64.48  </x>
+        <y> -42.03 </y>
+        <z> 1.15   </z>
+      </station>
+      <station id="7">
+        <x> -64.99 </x>
+        <y> -41.42 </y>
+        <z> 1.11   </z>
+      </station>
+      <station id="8">
+        <x> -224.37 </x>
+        <y> -33.68  </y>
+        <z> 2.03    </z>
+      </station>
+      <station id="9">
+        <x> -328.97 </x>
+        <y> -49.29  </y>
+        <z> 1.86    </z>
+      </station>
+      <station id="10">
+        <x> -426.06 </x>
+        <y> -7.66   </y>
+        <z> 1.46    </z>
+      </station>
+      <station id="11">
+        <x> -569.81 </x>
+        <y> 46.42   </y>
+        <z> 1.90    </z>
+      </station>
+      <station id="12">
+        <x> 24.21    </x>
+        <y> -156.62  </y>
+        <z> 1.31     </z>
+      </station>
+      <station id="13">
+        <x> -140.10 </x>
+        <y> -143.78 </y>
+        <z> 1.53    </z>
+      </station>
+      <station id="14">
+        <x> -260.88 </x>
+        <y> -136.19 </y>
+        <z> 1.52    </z>
+      </station>
+      <station id="15">
+        <x> -377.53 </x>
+        <y> -144.97 </y>
+        <z> 1.67    </z>
+      </station>
+      <station id="16">
+        <x> -481.52 </x>
+        <y> -155.46 </y>
+        <z> 1.83    </z>
+      </station>
+      <station id="17">
+        <x> 44.09   </x>
+        <y> -276.64 </y>
+        <z> 1.65    </z>
+      </station>
+      <station id="18">
+        <x> -95.83  </x>
+        <y> -276.04 </y>
+        <z> 1.29    </z>
+      </station>
+      <station id="19">
+        <x> -195.43  </x>
+        <y> -272.58  </y>
+        <z> 1.63     </z>
+      </station>
+      <station id="20">
+        <x> -319.85 </x>
+        <y> -267.57 </y>
+        <z> 1.92    </z>
+      </station>
+      <station id="21">
+        <x> -481.54 </x>
+        <y> -234.93 </y>
+        <z> 1.59    </z>
+      </station>
+      <station id="22">
+        <x> -608.26 </x>
+        <y> -281.77 </y>
+        <z> 0.94    </z>
+      </station>
+      <station id="23">
+        <x> 24.79   </x>
+        <y> -391.27 </y>
+        <z> 1.32    </z>
+      </station>
+      <station id="24">
+        <x> -112.86 </x>
+        <y> -383.64 </y>
+        <z> 1.66    </z>
+      </station>
+      <station id="25">
+        <x> -249.76 </x>
+        <y> -392.04 </y>
+        <z> 1.48    </z>
+      </station>
+      <station id="26">
+        <x> -386.09 </x>
+        <y> -382.12 </y>
+        <z> 1.84    </z>
+      </station>
+      <station id="27">
+        <x> -533.71 </x>
+        <y> -409.11 </y>
+        <z> 0.87    </z>
+      </station>
+      <station id="28">
+        <x> 101.22 </x>
+        <y> -507.57</y>
+        <z> 1.74   </z>
+      </station>
+      <station id="29">
+        <x> -24.72   </x>
+        <y> -507.58  </y>
+        <z> 1.90     </z>
+      </station>
+      <station id="30">
+        <x> -196.54 </x>
+        <y> -504.10 </y>
+        <z> 1.81    </z>
+      </station>
+      <station id="31">
+        <x> -317.87 </x>
+        <y> -529.16 </y>
+        <z> 1.84    </z>
+      </station>
+      <station id="32">
+        <x> -443.33 </x>
+        <y> -525.89 </y>
+        <z> 1.95    </z>
+      </station>
+      <station id="33">
+        <x> -565.96 </x>
+        <y> -526.39 </y>
+        <z> 0.63    </z>
+      </station>
+      <station id="34">
+        <x> -111.90 </x>
+        <y> -654.86 </y>
+        <z> 1.90    </z>
+      </station>
+      <station id="35">
+        <x> -275.03 </x>
+        <y> -645.43 </y>
+        <z> 1.71    </z>
+      </station>
+      <station id="36">
+        <x> -389.06</x>
+        <y> -653.28</y>
+        <z> 1.71   </z>
+      </station>
+      <station id="37">
+        <x> -517.91 </x>
+        <y> -620.77 </y>
+        <z> 1.96    </z>
+      </station>
+    </stationList>
+  </array>
+
+  <!-- since 11.05.2011, relocated station 30 -->
+  <array type="KASCADEGrandeRelocated">
+    <!-- Coordinates of the 37 KASCADE-Grande Stations. -->
+
+    <!-- height of array [m] -->
+    <height> 110.1 </height>
+
+    <!-- azimuthal rotation of array system wrt. north  [deg.] -->
+    <phi> -15. </phi>
+
+    <!-- delay due to detectors of Grande station (scintillator, PMT,
+         internal signal propagation) [ns]
+         risetime in scintillator: 0 ns
+         30 cm between scintillator plate and PMT: 1 ns
+         risetime in PMT: 3 ns
+         propagation time in PMT: 40 ns -->
+    <detectorDelay> 44 </detectorDelay>
+    <!-- delay due to electronics of Grande station [ns]
+         10m RG 59 with 4.1 ns/m: 41 ns
+         Discriminator: 6 ns-->
+    <electronicsDelay> 47 </electronicsDelay>
+    <!-- delay due to cable length between Grande station and
+         Grande DAQ [ns]
+         750m with 4.1 ns/m: 3075 ns -->
+    <cableDelay> 3075 </cableDelay>
+
+    <!-- station positions [m]  -->
+    <stationList>
+      <station id="1">
+        <x> -0.14 </x>
+        <y> 65.33 </y>
+        <z> 2.47  </z>
+      </station>
+      <station id="2">
+        <x> -131.26 </x>
+        <y> 70.87   </y>
+        <z> 2.05    </z>
+      </station>
+      <station id="3">
+        <x> -257.02 </x>
+        <y> 101.73  </y>
+        <z> 1.96    </z>
+      </station>
+      <station id="4">
+        <x> -384.85 </x>
+        <y> 96.12   </y>
+        <z> 0.84    </z>
+      </station>
+      <station id="5">
+        <x> -499.64 </x>
+        <y> 95.51   </y>
+        <z> 1.81    </z>
+      </station>
+      <station id="6">
+        <x> 64.48  </x>
+        <y> -42.03 </y>
+        <z> 1.15   </z>
+      </station>
+      <station id="7">
+        <x> -64.99 </x>
+        <y> -41.42 </y>
+        <z> 1.11   </z>
+      </station>
+      <station id="8">
+        <x> -224.37 </x>
+        <y> -33.68  </y>
+        <z> 2.03    </z>
+      </station>
+      <station id="9">
+        <x> -328.97 </x>
+        <y> -49.29  </y>
+        <z> 1.86    </z>
+      </station>
+      <station id="10">
+        <x> -426.06 </x>
+        <y> -7.66   </y>
+        <z> 1.46    </z>
+      </station>
+      <station id="11">
+        <x> -569.81 </x>
+        <y> 46.42   </y>
+        <z> 1.90    </z>
+      </station>
+      <station id="12">
+        <x> 24.21    </x>
+        <y> -156.62  </y>
+        <z> 1.31     </z>
+      </station>
+      <station id="13">
+        <x> -140.10 </x>
+        <y> -143.78 </y>
+        <z> 1.53    </z>
+      </station>
+      <station id="14">
+        <x> -260.88 </x>
+        <y> -136.19 </y>
+        <z> 1.52    </z>
+      </station>
+      <station id="15">
+        <x> -377.53 </x>
+        <y> -144.97 </y>
+        <z> 1.67    </z>
+      </station>
+      <station id="16">
+        <x> -481.52 </x>
+        <y> -155.46 </y>
+        <z> 1.83    </z>
+      </station>
+      <station id="17">
+        <x> 44.09   </x>
+        <y> -276.64 </y>
+        <z> 1.65    </z>
+      </station>
+      <station id="18">
+        <x> -95.83  </x>
+        <y> -276.04 </y>
+        <z> 1.29    </z>
+      </station>
+      <station id="19">
+        <x> -195.43  </x>
+        <y> -272.58  </y>
+        <z> 1.63     </z>
+      </station>
+      <station id="20">
+        <x> -319.85 </x>
+        <y> -267.57 </y>
+        <z> 1.92    </z>
+      </station>
+      <station id="21">
+        <x> -481.54 </x>
+        <y> -234.93 </y>
+        <z> 1.59    </z>
+      </station>
+      <station id="22">
+        <x> -608.26 </x>
+        <y> -281.77 </y>
+        <z> 0.94    </z>
+      </station>
+      <station id="23">
+        <x> 24.79   </x>
+        <y> -391.27 </y>
+        <z> 1.32    </z>
+      </station>
+      <station id="24">
+        <x> -112.86 </x>
+        <y> -383.64 </y>
+        <z> 1.66    </z>
+      </station>
+      <station id="25">
+        <x> -249.76 </x>
+        <y> -392.04 </y>
+        <z> 1.48    </z>
+      </station>
+      <station id="26">
+        <x> -386.09 </x>
+        <y> -382.12 </y>
+        <z> 1.84    </z>
+      </station>
+      <station id="27">
+        <x> -533.71 </x>
+        <y> -409.11 </y>
+        <z> 0.87    </z>
+      </station>
+      <station id="28">
+        <x> 101.22 </x>
+        <y> -507.57</y>
+        <z> 1.74   </z>
+      </station>
+      <station id="29">
+        <x> -24.72   </x>
+        <y> -507.58  </y>
+        <z> 1.90     </z>
+      </station>
+      <station id="30">
+        <x> -193.82 </x>
+        <y> -525.00 </y>
+        <z> 1.81    </z>
+      </station>
+      <station id="31">
+        <x> -317.87 </x>
+        <y> -529.16 </y>
+        <z> 1.84    </z>
+      </station>
+      <station id="32">
+        <x> -443.33 </x>
+        <y> -525.89 </y>
+        <z> 1.95    </z>
+      </station>
+      <station id="33">
+        <x> -565.96 </x>
+        <y> -526.39 </y>
+        <z> 0.63    </z>
+      </station>
+      <station id="34">
+        <x> -111.90 </x>
+        <y> -654.86 </y>
+        <z> 1.90    </z>
+      </station>
+      <station id="35">
+        <x> -275.03 </x>
+        <y> -645.43 </y>
+        <z> 1.71    </z>
+      </station>
+      <station id="36">
+        <x> -389.06</x>
+        <y> -653.28</y>
+        <z> 1.71   </z>
+      </station>
+      <station id="37">
+        <x> -517.91 </x>
+        <y> -620.77 </y>
+        <z> 1.96    </z>
+      </station>
+    </stationList>
+  </array>
+</ArrayModels>

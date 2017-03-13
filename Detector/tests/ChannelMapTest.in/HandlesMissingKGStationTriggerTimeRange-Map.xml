@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ChannelMap>
+  <channel>
+    <signalSource type="kgStation">
+      <kgStation id="19">
+        <triggerTimeOffset> -3.2e-9 </triggerTimeOffset>
+      </kgStation>
+    </signalSource>
+
+    <digitizer id="1">
+      <channel> 1 </channel>
+      <coupling> DC50R </coupling>
+      <range> 100e-3 </range>
+      <voltageOffset> 0.0 </voltageOffset>
+      <samplingTime> 0.8e-9 </samplingTime>
+    </digitizer>
+  </channel>
+</ChannelMap>

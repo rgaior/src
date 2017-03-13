@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<ElectronicsChainModels>
+
+  <!--
+     Configuration of electronics
+  -->
+
+  <electronicsChain id="1">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="" />
+    <powerDetector type="Mini-Circuits ZX47-60+ with capacitor" riseTime="20e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+  <electronicsChain id="2">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="inline1" />
+    <powerDetector type="Mini-Circuits ZX47-60+ with capacitor" riseTime="20e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+  <electronicsChain id="3">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="inline1 Soontai" />
+    <powerDetector type="Mini-Circuits ZX47-60+ with capacitor" riseTime="20e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+  <electronicsChain id="4">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="" />
+    <powerDetector type="Mini-Circuits ZX47-60+ with capacitor" riseTime="20e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+  <electronicsChain id="5">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="hpf inline2" />
+    <powerDetector type="Mini-Circuits ZX47-60+ without capacitor" riseTime="4e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+  <electronicsChain id="6">
+    <cable type="RG58" length="50" />
+    <adapter type="F to BNC" />
+    <biasT type="" />
+    <attenuator type="6dB" />
+    <filter type="inline2" />
+    <powerDetector type="Mini-Circuits ZX47-60+ without capacitor" riseTime="4e-9" />
+    <filter type="fastEnvelope" />
+    <cable type="RG58" length="1.00" />
+  </electronicsChain>
+
+</ElectronicsChainModels>

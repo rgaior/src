@@ -1,0 +1,147 @@
+#include "AntennaData.h"
+
+#include <stdexcept>
+#include <sstream>
+#include <iostream>
+
+#include <Antenna.h>
+#include <Detector.h>
+#include <DetectorSetup.h>
+
+
+using namespace std;
+
+ClassImp(AntennaData)
+
+
+AntennaData::AntennaData() :
+  fAntennaId(0)
+{
+
+}
+
+
+void AntennaData::SetId(UInt_t id)
+{
+  // Check whether the antenna id is known by requesting a reference
+  try {
+    const Antenna& antenna __attribute__((unused)) =
+      Detector::GetInstance().GetSetup().GetAntenna(id);
+  } catch(...) {
+    stringstream err_msg_ss;
+    err_msg_ss << "AntennaData::SetId(): Unknown antenna id " << id << ".";
+    string err_msg = err_msg_ss.str();
+    throw runtime_error(err_msg);
+  }
+
+  fAntennaId = id;
+}
+
+
+bool AntennaData::HasChannelData(unsigned int channelId) const {
+  for ( ConstChannelDataIterator iter = ChannelsBegin();
+        iter != ChannelsEnd(); ++iter ) 
+    if ( iter->GetId() == channelId )
+      return true;
+
+  return false;
+}
+
+
+void AntennaData::MakeChannelData(unsigned int channelId) {
+
+  if ( HasChannelData(channelId) ) {
+    cerr << " AntennaData::MakeChannelData() - Error"
+         << " antenna " << channelId << " exists!! Ignore..." 
+         << endl;
+    return;
+  }
+  ChannelData tmp(fAntennaId);
+  tmp.SetId(channelId);
+  fChannels.push_back(tmp);
+
+}
+
+
+void AntennaData::AddChannelData(const ChannelData& channelData) {
+
+  if ( HasChannelData(channelData.GetId()) ) {
+    cerr << " AntennaData::MakeChannelData() - Error"
+         << " antenna " << channelData.GetId() << " exists!! Ignore..." 
+         << endl;
+    return;
+  }
+
+  fChannels.push_back(channelData);
+
+}
+
+
+const ChannelData& AntennaData::GetChannelData(unsigned int channelId) const {
+
+  for ( ConstChannelDataIterator iter = ChannelsBegin();
+        iter != ChannelsEnd(); ++iter ) 
+    if ( iter->GetId() == channelId )
+      return *iter;
+
+
+  ostringstream errMsg;
+  errMsg << " AntennaData::GetChannelData() - no antenna id= " << channelId;
+  throw std::runtime_error(errMsg.str());
+
+}
+
+
+ChannelData& AntennaData::GetChannelData(unsigned int channelId) {
+
+  for ( ChannelDataIterator iter = ChannelsBegin();
+        iter != ChannelsEnd(); ++iter ) 
+    if ( iter->GetId() == channelId )
+      return *iter;
+
+
+  ostringstream errMsg;
+  errMsg << " AntennaData::GetChannelData() - no antenna id= " << channelId;
+  throw std::runtime_error(errMsg.str());
+
+}
+
+
+void AntennaData::ObserveEmission(const double energy,
+                                  const double t1,
+                                  const double t2,
+                                  const TVector3 r1, /* array cs */
+                                  const TVector3 r2) /* array cs */
+{
+  for (ChannelDataIterator iter = ChannelsBegin();
+       iter != ChannelsEnd();
+       iter++) {
+    iter->ObserveEmission(energy, t1, t2, r1, r2);
+  }
+}
+
+
+void AntennaData::ObserveEmissions(const double energy,
+				   const double t1,
+                                   const TVector3 r1,
+				   const double tau)
+//, const vector<double> dts)
+{
+  for (ChannelDataIterator iter = ChannelsBegin();
+       iter != ChannelsEnd();
+       iter++) {
+    iter->ObserveEmission(energy, t1, r1, tau);
+    //for (unsigned int i = 0; i < dts.size(); i++) {
+    //iter->ObserveEmission(energy, t1 + dts[i], r1);
+    //}
+  }
+}
+
+void AntennaData::PrintAeff(const TVector3 r1 /* array cs */)
+{
+  for (ChannelDataIterator iter = ChannelsBegin();
+       iter != ChannelsEnd();
+       iter++) {
+    iter->PrintAeff(r1);
+  }
+}

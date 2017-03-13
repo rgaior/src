@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<Configuration>
+
+  <configLink 
+     id="MicrowaveDetector"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/MicrowaveDetector_12ch.xml" />
+  <configLink 
+     id="DishModels"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/DishModels.xml" />
+  <configLink 
+     id="ChannelModels"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/ChannelModels.xml" />
+  <configLink 
+     id="ArrayModels"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/ArrayModels.xml" />
+  <configLink 
+     id="KascadeEnergyTable"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/KascadeEnergyTable.txt" />
+ <configLink 
+     id="GHShowerSimulation"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/GHShowerGenerator.xml" />
+ <configLink 
+     id="TraceSimulator"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/TraceSimulator.xml" />
+ <configLink 
+     id="ElectronicsSimulator"  
+     path="/Users/ImenAlSamarai/Documents/mbr/config/ElectronicsSimulator.xml" />
+
+ <showerSeed> 123 </showerSeed>
+ <detectorSeed> 234 </detectorSeed>
+
+</Configuration>

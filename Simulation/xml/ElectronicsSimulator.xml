@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<ElectronicsSimulator>
+
+  <!-- power law index of noise frequency spectrum 
+       0: white noise
+       1: flicker noise (pink noise)
+       2: random walk (brownian noise)
+  -->  
+  <frequencyIndex> 1. </frequencyIndex> 
+
+</ElectronicsSimulator>

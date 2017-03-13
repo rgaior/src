@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<Configuration>
+
+  <configLink 
+     id="MicrowaveDetector"  
+     path="@XMLCONFIGDIR@/MicrowaveDetector_08ch.xml" />
+  <configLink 
+     id="DishModels"  
+     path="@XMLCONFIGDIR@/DishModels.xml" />
+  <configLink 
+     id="ChannelModels"  
+     path="@XMLCONFIGDIR@/ChannelModels.xml" />
+  <configLink 
+     id="ArrayModels"  
+     path="@XMLCONFIGDIR@/ArrayModels.xml" />
+  <configLink 
+     id="KascadeEnergyTable"  
+     path="@XMLCONFIGDIR@/KascadeEnergyTable.txt" />
+ <configLink 
+     id="GHShowerSimulation"  
+     path="@XMLCONFIGDIR@/GHShowerGenerator.xml" />
+ <configLink 
+     id="TraceSimulator"  
+     path="@XMLCONFIGDIR@/TraceSimulator.xml" />
+ <configLink 
+     id="ElectronicsSimulator"  
+     path="@XMLCONFIGDIR@/ElectronicsSimulator.xml" />
+
+ <showerSeed> 123 </showerSeed>
+ <detectorSeed> 234 </detectorSeed>
+
+</Configuration>

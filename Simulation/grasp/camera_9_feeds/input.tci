@@ -1,0 +1,5 @@
+# 
+COMMAND OBJECT PO_1 get_currents ( source : sequence(ref(FeedPattern_1))) Cmd_1 
+# 
+COMMAND OBJECT Field_cut_1 get_field ( source : sequence(ref(PO_1))) Cmd_2 
+QUIT 
